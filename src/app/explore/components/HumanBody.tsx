@@ -15,6 +15,8 @@ import Integumentary from './systems/Integumentary';
 import Heart from './organs/Heart';
 import Brain from './organs/Brain';
 import DiseaseOverlayComponent from './disease/DiseaseOverlay';
+import SymptomMarkers from './disease/SymptomMarkers';
+import TreatmentAnimationSystem from './cure/TreatmentAnimation';
 
 export default function HumanBody() {
   const activeSystems = useGenesisStore((s) => s.activeSystems);
@@ -56,6 +58,8 @@ export default function HumanBody() {
 
       {/* Disease overlay — rendered on top of everything */}
       <DiseaseOverlayComponent />
+      <SymptomMarkers />
+      <TreatmentAnimationSystem />
     </group>
   );
 }

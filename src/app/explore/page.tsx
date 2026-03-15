@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import SystemPanel from './components/ui/SystemPanel';
 import InfoPanel from './components/ui/InfoPanel';
 import ZoomIndicator from './components/ui/ZoomIndicator';
@@ -11,6 +11,7 @@ import SearchBar from './components/ui/SearchBar';
 import DiseaseTimeline from './components/disease/DiseaseTimeline';
 import HealthMeter from './components/cure/HealthMeter';
 import SoundEngine from './components/SoundEngine';
+import TreatmentPanel from './components/ui/TreatmentPanel';
 
 /* Dynamic import for R3F — must be client-only, no SSR */
 const BodyScene = dynamic(() => import('./components/BodyScene'), {
@@ -73,7 +74,9 @@ export default function ExplorePage() {
 
       {/* Search bar */}
       <div className="pt-12">
-        <SearchBar />
+        <Suspense fallback={null}>
+          <SearchBar />
+        </Suspense>
       </div>
 
       {/* 3D Viewport */}
@@ -87,6 +90,7 @@ export default function ExplorePage() {
       <ZoomIndicator />
       <DiseaseTimeline />
       <HealthMeter />
+      <TreatmentPanel />
       <SoundEngine />
 
       {/* Bottom-right controls legend */}

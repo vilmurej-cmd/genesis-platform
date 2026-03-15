@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Zap,
   Bone,
+  Eye,
 } from 'lucide-react';
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -471,6 +472,13 @@ export default function PathologyPage() {
                   >
                     {selectedDisease.affectedSystem} System
                   </span>
+                  <Link
+                    href={`/explore?disease=${encodeURIComponent(selectedDisease.name)}`}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 border-cyan-500/40 bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 transition-colors"
+                  >
+                    <Eye className="w-3 h-3" />
+                    View in 3D
+                  </Link>
                   <span
                     className="px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5"
                     style={{

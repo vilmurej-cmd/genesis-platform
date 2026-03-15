@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, Loader2, X } from 'lucide-react';
 import { useGenesisStore, type DiseaseOverlay } from '../../store';
 
@@ -39,7 +40,9 @@ export default function SearchBar() {
     ? [...SUGGESTIONS, ...ORGANS].filter((s) => s.toLowerCase().includes(query.toLowerCase()))
     : SUGGESTIONS;
 
-  const handleSearch = async (searchQuery?: string) => {
+  const searchParams = useSearchParams();
+
+  const handleSearch = useCallback(async (searchQuery?: string) => {
     const q = (searchQuery || query).trim();
     if (!q) return;
     setShowSuggestions(false);
@@ -112,7 +115,16 @@ export default function SearchBar() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, selectOrgan, setActiveDisease, setZoomLevel]);
+
+  // Auto-search from URL params (e.g., /explore?disease=Diabetes)
+  useEffect(() => {
+    const diseaseParam = searchParams.get('disease');
+    if (diseaseParam) {
+      setQuery(diseaseParam);
+      handleSearch(diseaseParam);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close suggestions on outside click
   useEffect(() => {
