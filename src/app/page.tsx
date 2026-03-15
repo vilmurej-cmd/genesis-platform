@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 const PORTALS = [
-  { href: '/atlas', icon: Dna, label: 'ATLAS', desc: 'Explore the human body', color: '#00E5FF', glow: 'box-glow-cyan' },
+  { href: '/explore', icon: Dna, label: 'EXPLORE', desc: '3D Human Body Engine', color: '#00E5FF', glow: 'box-glow-cyan' },
   { href: '/pathology', icon: Bug, label: 'PATHOLOGY', desc: 'Visualize any disease', color: '#FF00E5', glow: 'box-glow-magenta' },
   { href: '/lab', icon: FlaskConical, label: 'LAB', desc: 'Craft the cure', color: '#FFD700', glow: 'box-glow-gold' },
 ];
