@@ -11,9 +11,9 @@ const DEMO_RESULT = {
     'Potential for once-weekly dosing based on predicted half-life',
   ],
   existingResearch: [
-    { title: 'Dual-pathway inhibition in autoimmune disorders', finding: 'Phase II trials showed 43% improvement in symptom scores with acceptable safety profile.' },
-    { title: 'Selective receptor modulation: A review', finding: 'Allosteric modulators demonstrated improved selectivity over orthosteric antagonists in 7 of 12 studies.' },
-    { title: 'Biomarker-guided therapy optimization', finding: 'Patient stratification by CRP and ESR levels improved treatment response rates by 28%.' },
+    'Dual-pathway inhibition in autoimmune disorders — Phase II trials showed 43% improvement in symptom scores with acceptable safety profile.',
+    'Selective receptor modulation: A review — Allosteric modulators demonstrated improved selectivity over orthosteric antagonists in 7 of 12 studies.',
+    'Biomarker-guided therapy optimization — Patient stratification by CRP and ESR levels improved treatment response rates by 28%.',
   ],
   riskAssessment:
     'Moderate risk. The hypothesis builds on validated targets but proposes a novel combination approach. Key risks include unexpected drug-drug interactions, off-target binding, and the need for extensive pharmacokinetic studies. The safety profile of individual components is well-established, which mitigates some concerns.',

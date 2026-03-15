@@ -138,8 +138,37 @@ export async function GET(req: Request) {
     }
   }
 
-  /* ── Demo fallback ────────────────────────────── */
+  /* ── Demo fallback — transform to match frontend DiseaseData interface ── */
   const match = Object.keys(DEMO_DATA).find((k) => q.includes(k) || k.includes(q));
-  const data = match ? DEMO_DATA[match] : { ...GENERIC_DEMO, name: q.charAt(0).toUpperCase() + q.slice(1) };
-  return NextResponse.json(data);
+  const raw = match ? DEMO_DATA[match] : { ...GENERIC_DEMO, name: q.charAt(0).toUpperCase() + q.slice(1) };
+
+  const transformed = {
+    name: raw.name,
+    affectedSystem: raw.affectedSystems?.[0] || 'Multiple Systems',
+    severity: raw.severity,
+    description: raw.pathophysiology?.slice(0, 200) + '...',
+    pathophysiology: raw.pathophysiology,
+    affectedSystems: (raw.affectedSystems || []).map((s: string) => ({
+      name: s,
+      impact: 'Significant involvement in disease progression',
+    })),
+    stages: (raw.stages || []).map((s: any, i: number) => ({
+      name: s.stage,
+      description: s.description,
+      severity: i < raw.stages.length / 3 ? 'mild' : i < (raw.stages.length * 2) / 3 ? 'moderate' : 'severe',
+    })),
+    treatments: [
+      ...(raw.currentTreatments || []).map((t: string) => ({
+        name: t,
+        type: 'medication' as const,
+        description: `Current standard of care: ${t}`,
+      })),
+    ],
+    research: (raw.experimentalTreatments || []).map((t: string) => ({
+      name: t,
+      phase: 'Experimental',
+      description: `Experimental treatment under investigation: ${t}`,
+    })),
+  };
+  return NextResponse.json(transformed);
 }

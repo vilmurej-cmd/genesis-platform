@@ -1,30 +1,34 @@
 import { NextResponse } from 'next/server';
 
 const DEMO_RESULT = {
-  causeOfDeath: 'Acute myocardial infarction secondary to severe coronary artery atherosclerosis',
-  mannerOfDeath: 'natural',
-  timeOfDeath: 'Approximately 6-8 hours prior to discovery, based on rigor mortis progression and liver temperature',
-  toxicology: [
-    'Blood alcohol: 0.02% (minimal, likely from prior evening)',
-    'Acetaminophen: therapeutic levels detected',
-    'No illicit substances detected',
-    'Digoxin: subtherapeutic levels (possible non-compliance)',
+  id: 'demo-analysis',
+  title: 'AI Forensic Analysis',
+  scenario: 'Custom scenario analyzed by forensic AI',
+  evidence: [
+    { label: 'Coronary atherosclerosis', detail: 'Severe three-vessel disease with >90% stenosis of LAD', severity: 'critical' },
+    { label: 'Cardiac hypertrophy', detail: 'Left ventricular hypertrophy with 480g heart weight (normal: 300-350g)', severity: 'high' },
+    { label: 'Pulmonary edema', detail: 'Bilateral — consistent with acute heart failure', severity: 'high' },
+    { label: 'Toxicology', detail: 'Blood alcohol 0.02%, acetaminophen therapeutic, digoxin subtherapeutic, no illicit substances', severity: 'moderate' },
   ],
-  traumaAnalysis:
-    'No external signs of trauma. Lividity pattern consistent with supine position and undisturbed postmortem interval. No defense wounds or suspicious markings. Minor abrasions on knees consistent with a fall (likely perimortem collapse).',
-  findings: [
+  postMortemFindings: [
     'Severe three-vessel coronary artery disease with >90% stenosis of LAD',
     'Left ventricular hypertrophy with 480g heart weight (normal: 300-350g)',
     'Pulmonary edema bilateral — consistent with acute heart failure',
     'Old myocardial scarring in posterior wall (prior silent MI)',
     'Mild hepatic congestion consistent with chronic right heart failure',
+    'No external signs of trauma — lividity consistent with supine position',
   ],
-  recommendations: [
-    'Case classification: Natural death — no further investigation required',
-    'Notify primary care physician regarding subtherapeutic digoxin levels',
-    'Family counseling recommended regarding hereditary cardiac risk factors',
-    'Medical records review to confirm cardiac history',
+  timeline: [
+    { time: '6-8 hours prior', event: 'Estimated time of death based on rigor mortis and liver temperature' },
+    { time: 'Perimortem', event: 'Minor knee abrasions consistent with collapse' },
+    { time: 'Discovery', event: 'Body found in supine position, undisturbed lividity pattern' },
   ],
+  analysis: {
+    probableCause: 'Acute myocardial infarction secondary to severe coronary artery atherosclerosis',
+    manner: 'Natural death',
+    confidence: 92,
+    notes: 'No external signs of trauma. Subtherapeutic digoxin levels suggest possible medication non-compliance. Family counseling recommended regarding hereditary cardiac risk factors.',
+  },
 };
 
 export async function POST(req: Request) {

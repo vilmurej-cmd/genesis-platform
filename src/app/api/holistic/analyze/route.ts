@@ -77,8 +77,21 @@ export async function POST(req: Request) {
       }
     }
 
-    /* ── Demo fallback ────────────────────────────── */
-    return NextResponse.json({ ...DEMO_RESULT, condition });
+    /* ── Demo fallback — flatten to match frontend SearchResult interface ── */
+    const allHerbs = DEMO_RESULT.approaches.flatMap((a) => a.herbs);
+    const allLifestyle = DEMO_RESULT.approaches.flatMap((a) => a.lifestyle);
+    const avgEvidence = Math.round(
+      DEMO_RESULT.approaches.reduce((s, a) => s + a.evidenceLevel, 0) / DEMO_RESULT.approaches.length
+    );
+    return NextResponse.json({
+      condition,
+      approaches: DEMO_RESULT.approaches.map(({ tradition, recommendation }) => ({ tradition, recommendation })),
+      herbs: allHerbs,
+      lifestyle: allLifestyle,
+      evidenceRating: avgEvidence,
+      warnings: DEMO_RESULT.warnings,
+      disclaimer: DEMO_RESULT.disclaimer,
+    });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
