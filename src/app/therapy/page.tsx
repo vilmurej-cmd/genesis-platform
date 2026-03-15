@@ -1,709 +1,775 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Volume2, Sun, Wind, Zap, Play, Square, Timer, Waves } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Play,
+  Square,
+  Volume2,
+  Music,
+  Brain,
+  Wind,
+  Palette,
+  Timer,
+  AlertTriangle,
+  Waves,
+  Activity,
+  Circle,
+} from 'lucide-react';
 
-/* ── Solfeggio Frequencies ────────────────────────── */
-const SOLFEGGIO = [
-  { hz: 174, name: 'Foundation', description: 'Pain reduction, sense of security. Acts as a natural anesthetic, reducing physical and energetic pain.', color: '#FF3366' },
-  { hz: 285, name: 'Restoration', description: 'Tissue regeneration, cellular repair. Influences the energy field to restore tissues to their original form.', color: '#FF6633' },
-  { hz: 396, name: 'Liberation', description: 'Release fear and guilt. Helps turn grief into joy and liberates from deeply rooted fears.', color: '#FF9933' },
-  { hz: 417, name: 'Transformation', description: 'Facilitate change, undo negative patterns. Cleanses traumatic experiences and clears destructive influences.', color: '#FFD700' },
-  { hz: 432, name: 'Universal', description: 'Natural tuning, cosmic harmony. Mathematically consistent with the patterns of the universe and nature.', color: '#00FF94' },
-  { hz: 528, name: 'Miracle', description: 'DNA repair, transformation. Known as the "Love Frequency" — associated with DNA repair and miracles.', color: '#00E5FF' },
-  { hz: 639, name: 'Connection', description: 'Harmonize relationships, communication. Enables creation of harmonious interpersonal relationships.', color: '#0066FF' },
-  { hz: 741, name: 'Expression', description: 'Awakening intuition, self-expression. Cleans cells of toxins and electromagnetic radiation exposure.', color: '#4A00E0' },
-  { hz: 852, name: 'Intuition', description: 'Spiritual order, awakening. Returns to spiritual harmony and raises awareness.', color: '#9945FF' },
-  { hz: 963, name: 'Transcendence', description: 'Divine consciousness, oneness. Awakens the perfect state of being, connected to the infinite.', color: '#FF00E5' },
+/* ── Types ──────────────────────────────────────────────── */
+type WaveformType = 'sine' | 'square' | 'triangle';
+
+interface FrequencyPreset {
+  hz: number;
+  name: string;
+  description: string;
+  chakra: string;
+  chakraColor: string;
+}
+
+interface BinauralPreset {
+  name: string;
+  rangeLabel: string;
+  baseFreq: number;
+  beatFreq: number;
+  brainState: string;
+  benefits: string[];
+}
+
+interface BreathingPattern {
+  name: string;
+  description: string;
+  phases: { label: string; duration: number }[];
+  cycles: number;
+}
+
+interface ColorTherapy {
+  name: string;
+  hex: string;
+  chakra: string;
+  properties: string;
+}
+
+/* ── Frequency Presets ──────────────────────────────────── */
+const FREQUENCIES: FrequencyPreset[] = [
+  { hz: 396, name: 'Liberation from Fear', description: 'Associated with releasing guilt and fear. This Solfeggio frequency is believed to help turn grief into joy and liberate the mind from negative thought patterns.', chakra: 'Root', chakraColor: '#FF3366' },
+  { hz: 432, name: 'Universal Healing', description: 'Known as Verdi\'s A, this frequency is mathematically consistent with the patterns of the universe. Said to promote natural healing, reduce anxiety, and create a sense of peace and well-being.', chakra: 'Heart', chakraColor: '#00FF94' },
+  { hz: 528, name: 'DNA Repair / Love', description: 'Called the "Love Frequency" or "Miracle Tone." Used in molecular biology to repair DNA. Associated with transformation, miracles, and deep healing at the cellular level.', chakra: 'Solar Plexus', chakraColor: '#FFD700' },
+  { hz: 639, name: 'Connecting Relationships', description: 'Enhances communication, understanding, tolerance, and love. Used for balancing relationships, family connections, and dealing with relationship problems.', chakra: 'Heart', chakraColor: '#00FF94' },
+  { hz: 741, name: 'Awakening Intuition', description: 'Linked to the throat chakra and self-expression. Said to cleanse cells of toxins, help with problem solving, and awaken intuition. Associated with pure expression.', chakra: 'Throat', chakraColor: '#00E5FF' },
+  { hz: 852, name: 'Spiritual Order', description: 'Connected to the third eye chakra. Associated with returning to spiritual order, awakening intuition, and raising consciousness to a higher plane of awareness.', chakra: 'Third Eye', chakraColor: '#9945FF' },
 ];
 
-/* ── Binaural Beats ───────────────────────────────── */
-const BINAURAL = [
-  { name: 'Delta', range: '0.5 - 4 Hz', description: 'Deep dreamless sleep, healing, regeneration. The slowest brain wave frequency associated with deep restoration.', brainState: 'Deep Sleep / Healing', color: '#9945FF' },
-  { name: 'Theta', range: '4 - 7 Hz', description: 'Meditation, creativity, REM sleep. The twilight state between waking and sleeping where insights emerge.', brainState: 'Meditation / Creativity', color: '#0066FF' },
-  { name: 'Alpha', range: '8 - 13 Hz', description: 'Relaxed alertness, calm focus, flow state. The bridge between conscious thinking and the subconscious mind.', brainState: 'Relaxed Focus / Flow', color: '#00E5FF' },
-  { name: 'Beta', range: '14 - 30 Hz', description: 'Active thinking, concentration, alertness. Normal waking consciousness and reasoning, active conversations.', brainState: 'Active Thinking / Alert', color: '#00FF94' },
-  { name: 'Gamma', range: '30 - 100 Hz', description: 'Peak awareness, higher perception, insight. Associated with bursts of insight and high-level information processing.', brainState: 'Peak Awareness / Insight', color: '#FFD700' },
-];
-
-/* ── Light Therapy Wavelengths ────────────────────── */
-const LIGHT_RANGES = [
-  { min: 380, max: 450, name: 'Violet / Blue', color: '#6B3FA0', uses: ['Acne treatment (kills P. acnes bacteria)', 'Circadian rhythm regulation', 'Seasonal affective disorder (SAD)', 'Antimicrobial photodynamic therapy'], depth: 'Surface (1-2mm)', evidence: 4 },
-  { min: 450, max: 520, name: 'Blue / Green', color: '#00A8A8', uses: ['Pain management', 'Migraine prevention and relief', 'Neonatal jaundice treatment', 'Mood regulation'], depth: 'Shallow (2-3mm)', evidence: 3 },
-  { min: 520, max: 570, name: 'Green', color: '#00CC66', uses: ['Pain reduction', 'Migraine relief', 'Reduced sensitivity to light', 'Calming effect on nervous system'], depth: 'Moderate (3-5mm)', evidence: 3 },
-  { min: 570, max: 620, name: 'Yellow / Orange', color: '#FF9933', uses: ['Mood enhancement', 'Vitamin D synthesis (UV adjacent)', 'Skin rejuvenation', 'Lymphatic stimulation'], depth: 'Moderate (5-8mm)', evidence: 2 },
-  { min: 620, max: 660, name: 'Red', color: '#CC3333', uses: ['Skin healing and collagen production', 'Inflammation reduction', 'Wound healing acceleration', 'Joint pain relief'], depth: 'Deep (8-10mm)', evidence: 5 },
-  { min: 660, max: 780, name: 'Deep Red / NIR', color: '#8B0000', uses: ['Deep tissue repair', 'Brain health (transcranial PBM)', 'Muscle recovery', 'Mitochondrial function enhancement'], depth: 'Very Deep (10-40mm)', evidence: 4 },
-];
-
-/* ── Breathing Exercises ──────────────────────────── */
-const BREATHING_EXERCISES = [
+/* ── Binaural Beat Presets ──────────────────────────────── */
+const BINAURAL_PRESETS: BinauralPreset[] = [
   {
-    name: 'Box Breathing',
-    pattern: [
-      { phase: 'Breathe In', duration: 4 },
-      { phase: 'Hold', duration: 4 },
-      { phase: 'Breathe Out', duration: 4 },
-      { phase: 'Hold', duration: 4 },
-    ],
-    description: 'A technique used by Navy SEALs and first responders. Equal-length phases create calm, controlled breathing that activates the parasympathetic nervous system.',
-    benefits: ['Reduces cortisol and stress hormones', 'Effective for anxiety and PTSD', 'Improves focus under pressure', 'Lowers blood pressure'],
-    color: '#00E5FF',
+    name: 'Deep Sleep',
+    rangeLabel: 'Delta (1-4 Hz)',
+    baseFreq: 200,
+    beatFreq: 2,
+    brainState: 'Delta waves \u2014 deep dreamless sleep, unconscious body recovery',
+    benefits: ['Profound physical rest', 'Growth hormone release', 'Immune system restoration', 'Deep unconscious processing'],
   },
   {
-    name: '4-7-8 Breathing',
-    pattern: [
-      { phase: 'Breathe In', duration: 4 },
-      { phase: 'Hold', duration: 7 },
-      { phase: 'Breathe Out', duration: 8 },
+    name: 'Meditation',
+    rangeLabel: 'Theta (4-8 Hz)',
+    baseFreq: 200,
+    beatFreq: 6,
+    brainState: 'Theta waves \u2014 deep meditation, creativity, REM sleep',
+    benefits: ['Deep meditative states', 'Enhanced creativity', 'Emotional processing', 'Subconscious access'],
+  },
+  {
+    name: 'Relaxation',
+    rangeLabel: 'Alpha (8-12 Hz)',
+    baseFreq: 200,
+    beatFreq: 10,
+    brainState: 'Alpha waves \u2014 relaxed alertness, calm awareness',
+    benefits: ['Stress reduction', 'Calm focus', 'Mind-body integration', 'Reduced anxiety'],
+  },
+  {
+    name: 'Focus',
+    rangeLabel: 'Beta (12-30 Hz)',
+    baseFreq: 200,
+    beatFreq: 18,
+    brainState: 'Beta waves \u2014 active concentration, analytical thinking',
+    benefits: ['Enhanced concentration', 'Active problem solving', 'Alert awareness', 'Mental endurance'],
+  },
+];
+
+/* ── Breathing Patterns ─────────────────────────────────── */
+const BREATHING_PATTERNS: BreathingPattern[] = [
+  {
+    name: '4-7-8 Relaxation',
+    description: 'Developed by Dr. Andrew Weil, this pattern activates the parasympathetic nervous system. The extended exhale triggers the relaxation response.',
+    phases: [
+      { label: 'Inhale', duration: 4 },
+      { label: 'Hold', duration: 7 },
+      { label: 'Exhale', duration: 8 },
     ],
-    description: 'Developed by Dr. Andrew Weil, based on pranayama. The extended exhale triggers a powerful parasympathetic response, making it one of the most effective techniques for falling asleep.',
-    benefits: ['Natural tranquilizer for the nervous system', 'Effective for insomnia and sleep onset', 'Reduces anxiety within minutes', 'Can lower heart rate rapidly'],
-    color: '#9945FF',
+    cycles: 4,
+  },
+  {
+    name: 'Box Breathing (4-4-4-4)',
+    description: 'Used by Navy SEALs and first responders for stress management. Equal durations create a balanced, grounding rhythm.',
+    phases: [
+      { label: 'Inhale', duration: 4 },
+      { label: 'Hold', duration: 4 },
+      { label: 'Exhale', duration: 4 },
+      { label: 'Hold', duration: 4 },
+    ],
+    cycles: 6,
   },
   {
     name: 'Wim Hof Method',
-    pattern: [
-      { phase: 'Power Breathe', duration: 2 },
-      { phase: 'Power Breathe', duration: 2 },
-      { phase: 'Power Breathe', duration: 2 },
-      { phase: 'Hold (exhale)', duration: 15 },
-      { phase: 'Recovery Breath', duration: 3 },
+    description: 'A controlled hyperventilation technique followed by breath retention. Increases oxygen levels, reduces CO2, and activates the autonomic nervous system.',
+    phases: [
+      { label: 'Power Inhale', duration: 2 },
+      { label: 'Let Go', duration: 2 },
     ],
-    description: 'Controlled hyperventilation followed by breath retention. This technique alters blood pH, releases adrenaline, and has been shown in clinical studies to voluntarily influence the immune system.',
-    benefits: ['Demonstrated immune system modulation', 'Increases adrenaline and anti-inflammatory markers', 'Improves cold tolerance', 'Enhances energy and mental clarity'],
-    color: '#FF3366',
-  },
-  {
-    name: 'Alternate Nostril',
-    pattern: [
-      { phase: 'Left In', duration: 4 },
-      { phase: 'Hold', duration: 2 },
-      { phase: 'Right Out', duration: 4 },
-      { phase: 'Right In', duration: 4 },
-      { phase: 'Hold', duration: 2 },
-      { phase: 'Left Out', duration: 4 },
-    ],
-    description: 'An ancient pranayama technique (Nadi Shodhana) that alternates breathing between nostrils. It balances the autonomic nervous system and harmonizes left and right brain hemispheres.',
-    benefits: ['Balances sympathetic and parasympathetic systems', 'Harmonizes brain hemisphere activity', 'Reduces anxiety and promotes calm', 'Improves cardiovascular function'],
-    color: '#FFD700',
+    cycles: 30,
   },
 ];
 
-/* ── Sound Wave Visualization ─────────────────────── */
-function SoundWave({ color, isPlaying }: { color: string; isPlaying: boolean }) {
-  return (
-    <div className="flex items-center justify-center gap-[3px] h-12">
-      {Array.from({ length: 20 }, (_, i) => (
-        <div
-          key={i}
-          className="w-1 rounded-full transition-all"
-          style={{
-            backgroundColor: color,
-            opacity: isPlaying ? 0.7 : 0.15,
-            height: isPlaying ? undefined : '4px',
-            animation: isPlaying
-              ? `soundWave 0.${4 + (i % 5)}s ease-in-out infinite alternate`
-              : 'none',
-            animationDelay: isPlaying ? `${i * 0.05}s` : '0s',
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes soundWave {
-          0% { height: 4px; }
-          100% { height: ${24 + Math.random() * 20}px; }
-        }
-      `}</style>
-    </div>
-  );
-}
+/* ── Color Therapy ──────────────────────────────────────── */
+const COLORS: ColorTherapy[] = [
+  { name: 'Red', hex: '#FF3366', chakra: 'Root (Muladhara)', properties: 'Grounding, vitality, courage, physical energy. Stimulates circulation and adrenal function.' },
+  { name: 'Orange', hex: '#FF9933', chakra: 'Sacral (Svadhisthana)', properties: 'Creativity, emotional balance, joy, sensuality. Supports reproductive and digestive systems.' },
+  { name: 'Yellow', hex: '#FFD700', chakra: 'Solar Plexus (Manipura)', properties: 'Confidence, personal power, mental clarity, optimism. Stimulates intellect and nervous system.' },
+  { name: 'Green', hex: '#00FF94', chakra: 'Heart (Anahata)', properties: 'Love, harmony, balance, renewal. Promotes healing, reduces inflammation, calms the nervous system.' },
+  { name: 'Blue', hex: '#0066FF', chakra: 'Throat (Vishuddha)', properties: 'Communication, truth, peace, serenity. Reduces blood pressure, calms the mind, promotes restful sleep.' },
+  { name: 'Indigo', hex: '#4A00E0', chakra: 'Third Eye (Ajna)', properties: 'Intuition, perception, inner wisdom. Deepens awareness, supports pineal gland, enhances visualization.' },
+  { name: 'Violet', hex: '#9945FF', chakra: 'Crown (Sahasrara)', properties: 'Spiritual connection, transcendence, divine awareness. Calms the nervous system, promotes meditation.' },
+];
 
-/* ── Breathing Circle ─────────────────────────────── */
-function BreathingCircle({
-  exercise,
-  isActive,
-  onStop,
-}: {
-  exercise: typeof BREATHING_EXERCISES[0];
-  isActive: boolean;
-  onStop: () => void;
-}) {
-  const [phaseIndex, setPhaseIndex] = useState(0);
-  const [countdown, setCountdown] = useState(exercise.pattern[0].duration);
-  const [elapsed, setElapsed] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const elapsedRef = useRef<NodeJS.Timeout | null>(null);
-
-  const currentPhase = exercise.pattern[phaseIndex];
-  const isInhale = currentPhase.phase.toLowerCase().includes('in') || currentPhase.phase.toLowerCase().includes('power');
-  const isHold = currentPhase.phase.toLowerCase().includes('hold');
-  const maxDuration = Math.max(...exercise.pattern.map((p) => p.duration));
-  const circleScale = isHold
-    ? (phaseIndex > 0 && exercise.pattern[phaseIndex - 1].phase.toLowerCase().includes('in') ? 1 : 0.5)
-    : isInhale
-    ? 0.5 + 0.5 * (1 - countdown / currentPhase.duration)
-    : 1 - 0.5 * (1 - countdown / currentPhase.duration);
-
-  useEffect(() => {
-    if (!isActive) return;
-
-    setPhaseIndex(0);
-    setCountdown(exercise.pattern[0].duration);
-    setElapsed(0);
-
-    intervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          setPhaseIndex((pi) => {
-            const next = (pi + 1) % exercise.pattern.length;
-            setCountdown(exercise.pattern[next].duration);
-            return next;
-          });
-          return 1;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    elapsedRef.current = setInterval(() => {
-      setElapsed((prev) => prev + 1);
-    }, 1000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (elapsedRef.current) clearInterval(elapsedRef.current);
-    };
-  }, [isActive, exercise]);
-
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-
-  return (
-    <div className="flex flex-col items-center gap-6 py-8">
-      {/* Circle */}
-      <div className="relative w-48 h-48 flex items-center justify-center">
-        <div
-          className="absolute inset-0 rounded-full transition-transform duration-1000 ease-in-out"
-          style={{
-            backgroundColor: `${exercise.color}10`,
-            border: `2px solid ${exercise.color}40`,
-            boxShadow: `0 0 30px ${exercise.color}20, inset 0 0 30px ${exercise.color}10`,
-            transform: `scale(${circleScale})`,
-          }}
-        />
-        <div className="relative text-center z-10">
-          <p className="font-heading font-bold text-lg" style={{ color: exercise.color }}>
-            {currentPhase.phase}
-          </p>
-          <p className="font-mono text-3xl text-text-primary">{countdown}s</p>
-        </div>
-      </div>
-
-      {/* Timer */}
-      <div className="flex items-center gap-2 text-text-muted text-sm">
-        <Timer className="w-4 h-4" />
-        <span className="font-mono">{formatTime(elapsed)}</span>
-      </div>
-
-      {/* Stop */}
-      <button
-        onClick={onStop}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-heading font-semibold border transition-all"
-        style={{
-          color: exercise.color,
-          borderColor: `${exercise.color}30`,
-          backgroundColor: `${exercise.color}08`,
-        }}
-      >
-        <Square className="w-4 h-4" />
-        Stop
-      </button>
-    </div>
-  );
-}
-
-/* ── Evidence Rating ──────────────────────────────── */
-function EvidenceRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      {Array.from({ length: 5 }, (_, i) => (
-        <div
-          key={i}
-          className={`w-2.5 h-2.5 rounded-full border ${
-            i < rating ? 'bg-genesis-cyan border-genesis-cyan/60' : 'bg-transparent border-white/15'
-          }`}
-        />
-      ))}
-      <span className="text-[10px] text-text-muted ml-1">{rating}/5</span>
-    </div>
-  );
-}
-
-/* ── Main Component ───────────────────────────────── */
+/* ── Component ──────────────────────────────────────────── */
 export default function TherapyPage() {
+  const [activeSection, setActiveSection] = useState<'frequencies' | 'binaural' | 'breathing' | 'color'>('frequencies');
+
+  // Audio state
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
   const [playingFreq, setPlayingFreq] = useState<number | null>(null);
+  const [volume, setVolume] = useState(0.3);
+  const [waveform, setWaveform] = useState<WaveformType>('sine');
+
+  // Binaural state
+  const binauralOscLRef = useRef<OscillatorNode | null>(null);
+  const binauralOscRRef = useRef<OscillatorNode | null>(null);
+  const binauralGainLRef = useRef<GainNode | null>(null);
+  const binauralGainRRef = useRef<GainNode | null>(null);
+  const binauralMergerRef = useRef<ChannelMergerNode | null>(null);
   const [playingBinaural, setPlayingBinaural] = useState<string | null>(null);
-  const [duration, setDuration] = useState(15);
-  const [freqTimer, setFreqTimer] = useState(0);
-  const [wavelength, setWavelength] = useState(620);
-  const [activeBreathing, setActiveBreathing] = useState<string | null>(null);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // Breathing state
+  const [breathingActive, setBreathingActive] = useState(false);
+  const [breathingPattern, setBreathingPattern] = useState<BreathingPattern | null>(null);
+  const [breathPhase, setBreathPhase] = useState(0);
+  const [breathCycle, setBreathCycle] = useState(0);
+  const [breathTimer, setBreathTimer] = useState(0);
+  const [breathElapsed, setBreathElapsed] = useState(0);
+  const breathIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const breathTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const currentLightRange = LIGHT_RANGES.find(
-    (r) => wavelength >= r.min && wavelength < r.max
-  ) || LIGHT_RANGES[LIGHT_RANGES.length - 1];
+  // Color therapy state
+  const [activeColor, setActiveColor] = useState<string | null>(null);
+  const colorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Frequency playback timer
-  useEffect(() => {
-    if (playingFreq !== null || playingBinaural !== null) {
-      setFreqTimer(0);
-      timerRef.current = setInterval(() => {
-        setFreqTimer((prev) => {
-          if (prev + 1 >= duration * 60) {
-            setPlayingFreq(null);
-            setPlayingBinaural(null);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      setFreqTimer(0);
+  /* ── Audio helpers ──────────────────────────────────── */
+  const getAudioCtx = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [playingFreq, playingBinaural, duration]);
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  }, []);
 
-  const formatTimer = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const stopFrequency = useCallback(() => {
+    try {
+      oscillatorRef.current?.stop();
+    } catch { /* already stopped */ }
+    oscillatorRef.current?.disconnect();
+    gainNodeRef.current?.disconnect();
+    oscillatorRef.current = null;
+    gainNodeRef.current = null;
+    setPlayingFreq(null);
+  }, []);
 
-  const toggleFreq = (hz: number) => {
+  const stopBinaural = useCallback(() => {
+    try { binauralOscLRef.current?.stop(); } catch { /* */ }
+    try { binauralOscRRef.current?.stop(); } catch { /* */ }
+    binauralOscLRef.current?.disconnect();
+    binauralOscRRef.current?.disconnect();
+    binauralGainLRef.current?.disconnect();
+    binauralGainRRef.current?.disconnect();
+    binauralMergerRef.current?.disconnect();
+    binauralOscLRef.current = null;
+    binauralOscRRef.current = null;
+    binauralGainLRef.current = null;
+    binauralGainRRef.current = null;
+    binauralMergerRef.current = null;
+    setPlayingBinaural(null);
+  }, []);
+
+  const playFrequency = useCallback((hz: number) => {
     if (playingFreq === hz) {
-      setPlayingFreq(null);
-      setPlayingBinaural(null);
-    } else {
-      setPlayingFreq(hz);
-      setPlayingBinaural(null);
+      stopFrequency();
+      return;
     }
+    stopFrequency();
+    stopBinaural();
+
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = waveform;
+    osc.frequency.setValueAtTime(hz, ctx.currentTime);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    oscillatorRef.current = osc;
+    gainNodeRef.current = gain;
+    setPlayingFreq(hz);
+  }, [playingFreq, waveform, volume, getAudioCtx, stopFrequency, stopBinaural]);
+
+  const playBinaural = useCallback((preset: BinauralPreset) => {
+    if (playingBinaural === preset.name) {
+      stopBinaural();
+      return;
+    }
+    stopBinaural();
+    stopFrequency();
+
+    const ctx = getAudioCtx();
+    const merger = ctx.createChannelMerger(2);
+
+    const oscL = ctx.createOscillator();
+    const oscR = ctx.createOscillator();
+    oscL.type = 'sine';
+    oscR.type = 'sine';
+    oscL.frequency.setValueAtTime(preset.baseFreq, ctx.currentTime);
+    oscR.frequency.setValueAtTime(preset.baseFreq + preset.beatFreq, ctx.currentTime);
+
+    const gainL = ctx.createGain();
+    const gainR = ctx.createGain();
+    gainL.gain.setValueAtTime(volume, ctx.currentTime);
+    gainR.gain.setValueAtTime(volume, ctx.currentTime);
+
+    oscL.connect(gainL);
+    oscR.connect(gainR);
+    gainL.connect(merger, 0, 0);
+    gainR.connect(merger, 0, 1);
+    merger.connect(ctx.destination);
+
+    oscL.start();
+    oscR.start();
+
+    binauralOscLRef.current = oscL;
+    binauralOscRRef.current = oscR;
+    binauralGainLRef.current = gainL;
+    binauralGainRRef.current = gainR;
+    binauralMergerRef.current = merger;
+    setPlayingBinaural(preset.name);
+  }, [playingBinaural, volume, getAudioCtx, stopBinaural, stopFrequency]);
+
+  // Update volume for active audio
+  useEffect(() => {
+    const t = audioCtxRef.current?.currentTime || 0;
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.setValueAtTime(volume, t);
+    }
+    if (binauralGainLRef.current) {
+      binauralGainLRef.current.gain.setValueAtTime(volume, t);
+    }
+    if (binauralGainRRef.current) {
+      binauralGainRRef.current.gain.setValueAtTime(volume, t);
+    }
+  }, [volume]);
+
+  // Update waveform for frequency player
+  useEffect(() => {
+    if (oscillatorRef.current) {
+      oscillatorRef.current.type = waveform;
+    }
+  }, [waveform]);
+
+  /* ── Breathing helpers ──────────────────────────────── */
+  const stopBreathing = useCallback(() => {
+    if (breathIntervalRef.current) clearInterval(breathIntervalRef.current);
+    if (breathTimerRef.current) clearInterval(breathTimerRef.current);
+    breathIntervalRef.current = null;
+    breathTimerRef.current = null;
+    setBreathingActive(false);
+    setBreathPhase(0);
+    setBreathCycle(0);
+    setBreathTimer(0);
+    setBreathElapsed(0);
+  }, []);
+
+  const startBreathing = useCallback((pattern: BreathingPattern) => {
+    stopBreathing();
+    setBreathingPattern(pattern);
+    setBreathingActive(true);
+    setBreathPhase(0);
+    setBreathCycle(0);
+    setBreathElapsed(0);
+
+    let currentPhase = 0;
+    let currentCycle = 0;
+    let phaseRemaining = pattern.phases[0].duration;
+
+    setBreathTimer(pattern.phases[0].duration);
+
+    breathTimerRef.current = setInterval(() => {
+      setBreathElapsed((prev) => prev + 1);
+    }, 1000);
+
+    breathIntervalRef.current = setInterval(() => {
+      phaseRemaining -= 1;
+      setBreathTimer(phaseRemaining);
+
+      if (phaseRemaining <= 0) {
+        currentPhase += 1;
+        if (currentPhase >= pattern.phases.length) {
+          currentPhase = 0;
+          currentCycle += 1;
+          if (currentCycle >= pattern.cycles) {
+            if (breathIntervalRef.current) clearInterval(breathIntervalRef.current);
+            if (breathTimerRef.current) clearInterval(breathTimerRef.current);
+            setBreathingActive(false);
+            return;
+          }
+          setBreathCycle(currentCycle);
+        }
+        setBreathPhase(currentPhase);
+        phaseRemaining = pattern.phases[currentPhase].duration;
+        setBreathTimer(phaseRemaining);
+      }
+    }, 1000);
+  }, [stopBreathing]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try { oscillatorRef.current?.stop(); } catch { /* */ }
+      try { binauralOscLRef.current?.stop(); } catch { /* */ }
+      try { binauralOscRRef.current?.stop(); } catch { /* */ }
+      if (breathIntervalRef.current) clearInterval(breathIntervalRef.current);
+      if (breathTimerRef.current) clearInterval(breathTimerRef.current);
+      if (colorTimeoutRef.current) clearTimeout(colorTimeoutRef.current);
+    };
+  }, []);
+
+  /* ── Color therapy ──────────────────────────────────── */
+  const flashColor = (hex: string) => {
+    if (colorTimeoutRef.current) clearTimeout(colorTimeoutRef.current);
+    setActiveColor(hex);
+    colorTimeoutRef.current = setTimeout(() => setActiveColor(null), 5000);
   };
 
-  const toggleBinaural = (name: string) => {
-    if (playingBinaural === name) {
-      setPlayingBinaural(null);
-      setPlayingFreq(null);
-    } else {
-      setPlayingBinaural(name);
-      setPlayingFreq(null);
-    }
+  /* ── Breathing circle scale ─────────────────────────── */
+  const getBreathScale = () => {
+    if (!breathingActive || !breathingPattern) return 1;
+    const phase = breathingPattern.phases[breathPhase];
+    if (!phase) return 1;
+    const lbl = phase.label.toLowerCase();
+    if (lbl.includes('inhale') || lbl.includes('power')) return 1.6;
+    if (lbl.includes('exhale') || lbl.includes('let go')) return 0.6;
+    return 1.2;
   };
 
-  // Interpolate wavelength → CSS color
-  const wavelengthToCSS = (nm: number): string => {
-    if (nm < 420) return `hsl(${270 + (nm - 380) * 0.75}, 80%, 50%)`;
-    if (nm < 490) return `hsl(${240 - (nm - 420) * 2.5}, 80%, 50%)`;
-    if (nm < 530) return `hsl(${180 - (nm - 490)}, 80%, 50%)`;
-    if (nm < 570) return `hsl(${120 - (nm - 530) * 1.5}, 80%, 50%)`;
-    if (nm < 620) return `hsl(${60 - (nm - 570) * 0.6}, 90%, 50%)`;
-    if (nm < 680) return `hsl(${30 - (nm - 620) * 0.5}, 90%, 45%)`;
-    return `hsl(0, 80%, ${40 - (nm - 680) * 0.1}%)`;
-  };
+  const sections = [
+    { id: 'frequencies' as const, label: 'Frequencies', icon: Music },
+    { id: 'binaural' as const, label: 'Binaural Beats', icon: Brain },
+    { id: 'breathing' as const, label: 'Breathing', icon: Wind },
+    { id: 'color' as const, label: 'Color Therapy', icon: Palette },
+  ];
 
   return (
-    <div className="min-h-screen pt-24 pb-20">
-      {/* Hero */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="text-center">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-genesis-blue/10 border border-genesis-blue/30 flex items-center justify-center">
-              <Volume2 className="w-7 h-7 text-genesis-blue" />
-            </div>
+    <div className="min-h-screen bg-bg-void text-text-primary font-body relative">
+      {/* Color therapy fullscreen overlay */}
+      {activeColor && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center cursor-pointer transition-opacity duration-500"
+          style={{ backgroundColor: activeColor + 'DD' }}
+          onClick={() => { setActiveColor(null); if (colorTimeoutRef.current) clearTimeout(colorTimeoutRef.current); }}
+        >
+          <div className="text-center">
+            <p className="text-white text-2xl font-heading font-bold mb-2">
+              {COLORS.find((c) => c.hex === activeColor)?.name} Light
+            </p>
+            <p className="text-white/60 text-sm mb-1">
+              {COLORS.find((c) => c.hex === activeColor)?.chakra}
+            </p>
+            <p className="text-white/40 text-xs mt-4">Tap anywhere to dismiss (auto-closes in 5s)</p>
           </div>
-          <h1 className="font-heading font-black text-5xl sm:text-6xl tracking-tight mb-4">
-            <span className="text-genesis-blue" style={{ textShadow: '0 0 20px rgba(0,102,255,0.5), 0 0 40px rgba(0,102,255,0.2)' }}>
-              Sound, Light & Frequency
-            </span>
-            <br />
-            <span className="text-text-primary text-3xl sm:text-4xl font-light">Healing</span>
-          </h1>
-          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-            Explore the therapeutic potential of sound frequencies, light wavelengths, and breathing patterns.
-          </p>
         </div>
-      </section>
+      )}
 
-      {/* ── Section 1: Sound Therapy Studio ────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
-        <div className="flex items-center gap-3 mb-6">
-          <Waves className="w-6 h-6 text-genesis-cyan" />
-          <h2 className="font-heading font-bold text-2xl text-text-primary">Sound Therapy Studio</h2>
-        </div>
-
-        {/* Duration Selector */}
-        <div className="flex items-center gap-3 mb-8">
-          <span className="text-sm text-text-muted">Duration:</span>
-          {[5, 15, 30, 60].map((d) => (
-            <button
-              key={d}
-              onClick={() => setDuration(d)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-heading font-semibold transition-all border ${
-                duration === d
-                  ? 'border-genesis-cyan/40 bg-genesis-cyan/10 text-genesis-cyan'
-                  : 'border-white/8 bg-white/[0.02] text-text-muted hover:border-white/15'
-              }`}
-            >
-              {d} min
-            </button>
-          ))}
-          {(playingFreq !== null || playingBinaural !== null) && (
-            <span className="ml-auto text-sm font-mono text-genesis-cyan">
-              {formatTimer(freqTimer)} / {duration}:00
-            </span>
-          )}
-        </div>
-
-        {/* Solfeggio Frequencies */}
-        <h3 className="font-heading font-semibold text-sm uppercase tracking-wider text-text-secondary mb-4">
-          Solfeggio Frequencies
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-10">
-          {SOLFEGGIO.map((freq) => {
-            const isPlaying = playingFreq === freq.hz;
-            return (
-              <div
-                key={freq.hz}
-                className={`rounded-2xl border p-4 transition-all duration-500 ${
-                  isPlaying ? 'border-white/20 bg-bg-surface' : 'border-white/8 bg-bg-card/60 hover:border-white/15'
-                }`}
-              >
-                <div className="text-center mb-2">
-                  <p className="font-heading font-black text-2xl" style={{ color: freq.color }}>
-                    {freq.hz}
-                  </p>
-                  <p className="text-[10px] text-text-muted uppercase tracking-wider">Hz</p>
-                </div>
-                <p className="font-heading font-semibold text-xs text-text-primary text-center mb-1">{freq.name}</p>
-                <p className="text-text-muted text-[10px] leading-relaxed text-center mb-3">{freq.description}</p>
-
-                {isPlaying && <SoundWave color={freq.color} isPlaying={true} />}
-
-                <button
-                  onClick={() => toggleFreq(freq.hz)}
-                  className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-heading font-semibold transition-all border"
-                  style={{
-                    color: freq.color,
-                    borderColor: isPlaying ? `${freq.color}40` : `${freq.color}20`,
-                    backgroundColor: isPlaying ? `${freq.color}15` : `${freq.color}05`,
-                  }}
-                >
-                  {isPlaying ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                  {isPlaying ? 'Stop' : 'Play'}
-                </button>
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-blue-500/20 bg-bg-void/90 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-text-muted hover:text-text-secondary transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+                <Waves className="w-5 h-5 text-genesis-blue" />
               </div>
-            );
-          })}
-        </div>
-
-        {/* Binaural Beats */}
-        <h3 className="font-heading font-semibold text-sm uppercase tracking-wider text-text-secondary mb-4">
-          Binaural Beats
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {BINAURAL.map((beat) => {
-            const isPlaying = playingBinaural === beat.name;
-            return (
-              <div
-                key={beat.name}
-                className={`rounded-2xl border p-5 transition-all duration-500 ${
-                  isPlaying ? 'border-white/20 bg-bg-surface' : 'border-white/8 bg-bg-card/60 hover:border-white/15'
-                }`}
-              >
-                <h4 className="font-heading font-bold text-lg mb-0.5" style={{ color: beat.color }}>
-                  {beat.name}
-                </h4>
-                <p className="font-mono text-xs text-text-muted mb-2">{beat.range}</p>
-                <p className="text-text-muted text-[11px] leading-relaxed mb-2">{beat.description}</p>
-                <p className="text-[10px] mb-3">
-                  <span className="text-text-muted">Brain state: </span>
-                  <span className="text-text-secondary">{beat.brainState}</span>
-                </p>
-
-                {isPlaying && <SoundWave color={beat.color} isPlaying={true} />}
-
-                <button
-                  onClick={() => toggleBinaural(beat.name)}
-                  className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-heading font-semibold transition-all border"
-                  style={{
-                    color: beat.color,
-                    borderColor: isPlaying ? `${beat.color}40` : `${beat.color}20`,
-                    backgroundColor: isPlaying ? `${beat.color}15` : `${beat.color}05`,
-                  }}
-                >
-                  {isPlaying ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                  {isPlaying ? 'Stop' : 'Play'}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Section 2: Light Therapy Guide ─────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
-        <div className="flex items-center gap-3 mb-6">
-          <Sun className="w-6 h-6 text-genesis-gold" />
-          <h2 className="font-heading font-bold text-2xl text-text-primary">Light Therapy Guide</h2>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-bg-surface p-8">
-          {/* Wavelength Slider */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm text-text-secondary font-heading font-semibold">
-                Wavelength:{' '}
-                <span style={{ color: wavelengthToCSS(wavelength) }} className="font-mono">
-                  {wavelength} nm
-                </span>
-              </label>
-              <span className="text-sm font-heading font-semibold" style={{ color: currentLightRange.color }}>
-                {currentLightRange.name}
-              </span>
-            </div>
-            <div className="relative">
-              <div
-                className="absolute inset-0 h-3 rounded-full"
-                style={{
-                  background: 'linear-gradient(to right, #6B3FA0, #0066FF, #00A8A8, #00CC66, #FFD700, #FF6633, #CC3333, #8B0000)',
-                }}
-              />
-              <input
-                type="range"
-                min={380}
-                max={780}
-                value={wavelength}
-                onChange={(e) => setWavelength(Number(e.target.value))}
-                className="relative w-full h-3 bg-transparent rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,255,255,0.5)] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/60"
-              />
-            </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-[10px] text-text-muted font-mono">380 nm (UV)</span>
-              <span className="text-[10px] text-text-muted font-mono">780 nm (IR)</span>
-            </div>
-          </div>
-
-          {/* Current wavelength info */}
-          <div
-            className="rounded-xl p-6 border"
-            style={{
-              borderColor: `${currentLightRange.color}30`,
-              backgroundColor: `${currentLightRange.color}08`,
-            }}
-          >
-            <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="font-heading font-bold text-xl" style={{ color: currentLightRange.color }}>
-                  {currentLightRange.name}
-                </h3>
-                <p className="text-text-muted text-xs font-mono">{currentLightRange.min} - {currentLightRange.max} nm</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Penetration Depth</p>
-                <p className="text-sm font-heading font-semibold text-text-secondary">{currentLightRange.depth}</p>
-              </div>
-            </div>
-
-            <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-text-secondary mb-3">
-              Therapeutic Applications
-            </h4>
-            <ul className="space-y-1.5 mb-4">
-              {currentLightRange.uses.map((use, i) => (
-                <li key={i} className="text-text-muted text-sm flex items-start gap-2">
-                  <span style={{ color: currentLightRange.color }} className="mt-0.5 flex-shrink-0">&bull;</span>
-                  {use}
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-text-muted uppercase tracking-wider">Evidence:</span>
-              <EvidenceRating rating={currentLightRange.evidence} />
-            </div>
-
-            {/* Penetration depth indicator */}
-            <div className="mt-4 pt-4 border-t border-white/5">
-              <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">Penetration Depth Indicator</p>
-              <div className="h-3 bg-white/5 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${((wavelength - 380) / 400) * 100}%`,
-                    backgroundColor: currentLightRange.color,
-                    boxShadow: `0 0 10px ${currentLightRange.color}40`,
-                  }}
-                />
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-[10px] text-text-muted">Surface</span>
-                <span className="text-[10px] text-text-muted">Deep Tissue (40mm+)</span>
+                <h1 className="font-heading font-bold text-xl tracking-wide" style={{ color: '#0066FF' }}>
+                  THERAPY
+                </h1>
+                <p className="text-xs text-text-muted">Sound, Light &amp; Frequency Healing</p>
               </div>
             </div>
           </div>
+          {/* Volume control */}
+          <div className="flex items-center gap-2">
+            <Volume2 className="w-4 h-4 text-text-muted" />
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="w-20 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-genesis-blue [&::-webkit-slider-thumb]:rounded-full"
+            />
+            <span className="text-[10px] text-text-muted font-mono w-8">{Math.round(volume * 100)}%</span>
+          </div>
         </div>
-      </section>
+      </header>
 
-      {/* ── Section 3: Breathing Therapy ───────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
-        <div className="flex items-center gap-3 mb-6">
-          <Wind className="w-6 h-6 text-genesis-green" />
-          <h2 className="font-heading font-bold text-2xl text-text-primary">Breathing Therapy</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {BREATHING_EXERCISES.map((exercise) => {
-            const isActive = activeBreathing === exercise.name;
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Section Navigation */}
+        <div className="flex gap-1 bg-bg-surface rounded-lg p-1 border border-blue-500/10 mb-8">
+          {sections.map((sec) => {
+            const Icon = sec.icon;
             return (
-              <div
-                key={exercise.name}
-                className={`rounded-2xl border transition-all duration-500 ${
-                  isActive ? 'border-white/20 bg-bg-surface' : 'border-white/8 bg-bg-card/60'
+              <button
+                key={sec.id}
+                onClick={() => setActiveSection(sec.id)}
+                className={`flex-1 py-2.5 px-3 rounded-md text-sm font-heading font-medium transition-all flex items-center justify-center gap-2 ${
+                  activeSection === sec.id
+                    ? 'bg-blue-500/15 text-genesis-blue border border-blue-500/30'
+                    : 'text-text-muted hover:text-text-secondary border border-transparent'
                 }`}
               >
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: `${exercise.color}12`, border: `1px solid ${exercise.color}25` }}
-                    >
-                      <Wind className="w-5 h-5" style={{ color: exercise.color }} />
-                    </div>
-                    <div>
-                      <h3 className="font-heading font-bold text-lg" style={{ color: exercise.color }}>
-                        {exercise.name}
-                      </h3>
-                      <p className="text-text-muted text-[10px] font-mono">
-                        Pattern: {exercise.pattern.map((p) => `${p.duration}s`).join(' - ')}
-                      </p>
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{sec.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Frequencies ────────────────────────────────── */}
+        {activeSection === 'frequencies' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading font-bold text-2xl" style={{ color: '#0066FF' }}>
+                Healing Frequencies
+              </h2>
+              {/* Waveform selector */}
+              <div className="flex items-center gap-1 bg-bg-surface rounded-lg p-1 border border-blue-500/10">
+                {(['sine', 'square', 'triangle'] as WaveformType[]).map((wf) => (
+                  <button
+                    key={wf}
+                    onClick={() => setWaveform(wf)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-mono transition-all capitalize ${
+                      waveform === wf
+                        ? 'bg-blue-500/15 text-genesis-blue border border-blue-500/30'
+                        : 'text-text-muted hover:text-text-secondary border border-transparent'
+                    }`}
+                  >
+                    {wf}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {FREQUENCIES.map((freq) => {
+                const isPlaying = playingFreq === freq.hz;
+                return (
+                  <div
+                    key={freq.hz}
+                    className={`rounded-xl border transition-all ${
+                      isPlaying
+                        ? 'border-blue-500/40 bg-blue-500/5 shadow-[0_0_20px_rgba(0,102,255,0.1)]'
+                        : 'border-white/8 bg-bg-card/60 hover:border-white/15'
+                    }`}
+                  >
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="font-mono text-2xl font-bold" style={{ color: '#0066FF' }}>
+                            {freq.hz}
+                          </span>
+                          <span className="text-text-muted text-sm ml-1">Hz</span>
+                        </div>
+                        <button
+                          onClick={() => playFrequency(freq.hz)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            isPlaying
+                              ? 'bg-genesis-blue text-white shadow-[0_0_15px_rgba(0,102,255,0.4)]'
+                              : 'bg-blue-500/10 border border-blue-500/30 text-genesis-blue hover:bg-blue-500/20'
+                          }`}
+                        >
+                          {isPlaying ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                        </button>
+                      </div>
+                      <h3 className="font-heading font-semibold text-sm text-text-primary mb-2">{freq.name}</h3>
+                      <p className="text-xs text-text-secondary leading-relaxed mb-3">{freq.description}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: freq.chakraColor }} />
+                        <span className="text-[10px] text-text-muted">{freq.chakra} Chakra</span>
+                      </div>
+                      {isPlaying && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <Activity className="w-3 h-3 text-genesis-blue animate-pulse" />
+                          <span className="text-[10px] text-genesis-blue font-mono">Playing {waveform} wave</span>
+                        </div>
+                      )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                  <p className="text-text-muted text-sm leading-relaxed mb-4">{exercise.description}</p>
+        {/* ── Binaural Beats ─────────────────────────────── */}
+        {activeSection === 'binaural' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-heading font-bold text-2xl mb-2" style={{ color: '#0066FF' }}>
+                Binaural Beats
+              </h2>
+              <p className="text-text-secondary text-sm mb-6">
+                Binaural beats work by playing two slightly different frequencies in each ear. Your brain perceives the difference as a rhythmic pulse, entraining brainwaves to match. <strong className="text-text-primary">Headphones required</strong> for the binaural effect.
+              </p>
+            </div>
 
-                  <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-text-secondary mb-2">
-                    Benefits
-                  </h4>
-                  <ul className="space-y-1 mb-4">
-                    {exercise.benefits.map((b, i) => (
-                      <li key={i} className="text-text-muted text-xs flex items-start gap-2">
-                        <span style={{ color: exercise.color }} className="mt-0.5 flex-shrink-0">&bull;</span>
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {BINAURAL_PRESETS.map((preset) => {
+                const isPlaying = playingBinaural === preset.name;
+                return (
+                  <div
+                    key={preset.name}
+                    className={`rounded-xl border transition-all ${
+                      isPlaying
+                        ? 'border-blue-500/40 bg-blue-500/5 shadow-[0_0_20px_rgba(0,102,255,0.1)]'
+                        : 'border-white/8 bg-bg-card/60 hover:border-white/15'
+                    }`}
+                  >
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-heading font-bold text-lg text-text-primary">{preset.name}</h3>
+                          <span className="text-xs font-mono text-genesis-blue">{preset.rangeLabel}</span>
+                        </div>
+                        <button
+                          onClick={() => playBinaural(preset)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            isPlaying
+                              ? 'bg-genesis-blue text-white shadow-[0_0_15px_rgba(0,102,255,0.4)]'
+                              : 'bg-blue-500/10 border border-blue-500/30 text-genesis-blue hover:bg-blue-500/20'
+                          }`}
+                        >
+                          {isPlaying ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-text-secondary mb-3">{preset.brainState}</p>
+                      {isPlaying && (
+                        <div className="mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-genesis-blue">
+                            <span>L: {preset.baseFreq} Hz</span>
+                            <span>R: {preset.baseFreq + preset.beatFreq} Hz</span>
+                            <span>Beat: {preset.beatFreq} Hz</span>
+                          </div>
+                        </div>
+                      )}
+                      <ul className="space-y-1">
+                        {preset.benefits.map((b, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-text-muted">
+                            <span className="text-genesis-blue mt-0.5 shrink-0">&bull;</span>
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                  {!isActive && (
-                    <button
-                      onClick={() => setActiveBreathing(exercise.name)}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-heading font-semibold transition-all border"
-                      style={{
-                        color: exercise.color,
-                        borderColor: `${exercise.color}30`,
-                        backgroundColor: `${exercise.color}08`,
-                      }}
-                    >
-                      <Play className="w-4 h-4" />
-                      Start
-                    </button>
-                  )}
+        {/* ── Breathing Guide ────────────────────────────── */}
+        {activeSection === 'breathing' && (
+          <div className="space-y-6">
+            <h2 className="font-heading font-bold text-2xl mb-6" style={{ color: '#0066FF' }}>
+              Breathing Guide
+            </h2>
 
-                  {isActive && (
-                    <BreathingCircle
-                      exercise={exercise}
-                      isActive={true}
-                      onStop={() => setActiveBreathing(null)}
-                    />
-                  )}
+            {/* Pattern selector */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+              {BREATHING_PATTERNS.map((pattern) => (
+                <button
+                  key={pattern.name}
+                  onClick={() => {
+                    if (breathingActive && breathingPattern?.name === pattern.name) {
+                      stopBreathing();
+                    } else {
+                      startBreathing(pattern);
+                    }
+                  }}
+                  className={`text-left p-4 rounded-xl border transition-all ${
+                    breathingPattern?.name === pattern.name && breathingActive
+                      ? 'border-blue-500/40 bg-blue-500/5'
+                      : 'border-white/8 bg-bg-card/60 hover:border-white/15'
+                  }`}
+                >
+                  <h3 className="font-heading font-semibold text-sm text-text-primary mb-1">{pattern.name}</h3>
+                  <p className="text-xs text-text-muted line-clamp-2">{pattern.description}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-genesis-blue">
+                      {pattern.phases.map((p) => p.duration).join('-')}s
+                    </span>
+                    <span className="text-[10px] text-text-muted">&middot; {pattern.cycles} cycles</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Breathing visualizer */}
+            <div className="flex flex-col items-center py-12">
+              <div className="relative mb-8">
+                <div
+                  className="w-48 h-48 rounded-full flex items-center justify-center"
+                  style={{
+                    transform: `scale(${getBreathScale()})`,
+                    transitionDuration: breathingActive && breathingPattern
+                      ? `${breathingPattern.phases[breathPhase]?.duration || 1}s`
+                      : '0.3s',
+                    transitionTimingFunction: 'ease-in-out',
+                    transitionProperty: 'transform',
+                    background: breathingActive
+                      ? 'radial-gradient(circle, rgba(0,102,255,0.15) 0%, rgba(0,102,255,0.05) 50%, transparent 70%)'
+                      : 'radial-gradient(circle, rgba(0,102,255,0.08) 0%, transparent 70%)',
+                    border: breathingActive ? '2px solid rgba(0,102,255,0.3)' : '2px solid rgba(0,102,255,0.1)',
+                    boxShadow: breathingActive ? '0 0 40px rgba(0,102,255,0.15), inset 0 0 40px rgba(0,102,255,0.05)' : 'none',
+                  }}
+                >
+                  <div className="text-center">
+                    {breathingActive && breathingPattern ? (
+                      <>
+                        <p className="font-heading font-bold text-xl" style={{ color: '#0066FF' }}>
+                          {breathingPattern.phases[breathPhase]?.label || 'Done'}
+                        </p>
+                        <p className="font-mono text-3xl font-bold text-text-primary mt-1">{breathTimer}</p>
+                      </>
+                    ) : (
+                      <>
+                        <Circle className="w-8 h-8 text-genesis-blue mx-auto mb-2 opacity-40" />
+                        <p className="text-sm text-text-muted">Select a pattern</p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      {/* ── Section 4: Grounding / Earthing ────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="flex items-center gap-3 mb-6">
-          <Zap className="w-6 h-6 text-genesis-gold" />
-          <h2 className="font-heading font-bold text-2xl text-text-primary">Grounding / Earthing</h2>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-bg-surface p-8">
-          <p className="text-text-secondary text-sm leading-relaxed mb-4">
-            Grounding (also called earthing) involves direct physical contact with the Earth&apos;s surface electrons by walking barefoot, lying on the ground, or using conductive systems. The theory posits that the Earth&apos;s surface carries a negative electrical charge, and direct contact allows free electrons to transfer into the body, neutralizing free radicals and reducing chronic inflammation.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-genesis-gold mb-3">
-                Research Findings
-              </h4>
-              <ul className="space-y-1.5">
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-gold mt-0.5 flex-shrink-0">&bull;</span>
-                  Reduced blood viscosity and improved circulation (Chevalier et al., 2013)
-                </li>
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-gold mt-0.5 flex-shrink-0">&bull;</span>
-                  Decreased cortisol levels and improved sleep (Ghaly & Teplitz, 2004)
-                </li>
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-gold mt-0.5 flex-shrink-0">&bull;</span>
-                  Reduced inflammatory markers after grounding sessions
-                </li>
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-gold mt-0.5 flex-shrink-0">&bull;</span>
-                  Improved autonomic nervous system balance (HRV studies)
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-text-secondary mb-3">
-                How to Practice
-              </h4>
-              <ul className="space-y-1.5">
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-green mt-0.5 flex-shrink-0">&bull;</span>
-                  Walk barefoot on grass, sand, soil, or natural stone for 20-30 minutes
-                </li>
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-green mt-0.5 flex-shrink-0">&bull;</span>
-                  Swim in natural bodies of water (lakes, oceans)
-                </li>
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-green mt-0.5 flex-shrink-0">&bull;</span>
-                  Use grounding mats or sheets connected to the ground port of an electrical outlet
-                </li>
-                <li className="text-text-muted text-sm flex items-start gap-2">
-                  <span className="text-genesis-green mt-0.5 flex-shrink-0">&bull;</span>
-                  Garden with bare hands in direct contact with soil
-                </li>
-              </ul>
+              {breathingActive && breathingPattern && (
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-text-secondary">
+                    Cycle {breathCycle + 1} of {breathingPattern.cycles}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-text-muted">
+                    <Timer className="w-3 h-3" />
+                    <span className="font-mono">
+                      {Math.floor(breathElapsed / 60)}:{String(breathElapsed % 60).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={stopBreathing}
+                    className="mt-4 px-4 py-2 rounded-lg text-sm border border-red-500/30 text-genesis-red hover:bg-red-500/10 transition-colors"
+                  >
+                    Stop
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-[10px] text-text-muted uppercase tracking-wider">Evidence:</span>
-            <EvidenceRating rating={2} />
-            <span className="text-[10px] text-text-muted ml-2">Promising preliminary research; more large-scale studies needed</span>
-          </div>
-        </div>
-      </section>
+        )}
 
-      {/* Disclaimer */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-genesis-blue/15 bg-genesis-blue/5 p-6 text-center">
+        {/* ── Color Therapy ──────────────────────────────── */}
+        {activeSection === 'color' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-heading font-bold text-2xl mb-2" style={{ color: '#0066FF' }}>
+                Color Therapy (Chromotherapy)
+              </h2>
+              <p className="text-text-secondary text-sm mb-6">
+                Each color corresponds to a specific frequency of visible light and is associated with particular chakras and healing properties. Click a color to immerse your screen in that frequency.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {COLORS.map((color) => (
+                <button
+                  key={color.name}
+                  onClick={() => flashColor(color.hex)}
+                  className="group text-left rounded-xl border border-white/8 bg-bg-card/60 hover:border-white/15 transition-all overflow-hidden"
+                >
+                  <div
+                    className="h-16 w-full relative"
+                    style={{
+                      background: `linear-gradient(135deg, ${color.hex}40, ${color.hex}15)`,
+                    }}
+                  >
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: `linear-gradient(135deg, ${color.hex}60, ${color.hex}25)` }}
+                    />
+                    <div className="absolute bottom-2 right-3">
+                      <div
+                        className="w-8 h-8 rounded-full border-2"
+                        style={{
+                          backgroundColor: color.hex,
+                          borderColor: `${color.hex}CC`,
+                          boxShadow: `0 0 15px ${color.hex}50`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-heading font-bold text-sm mb-1" style={{ color: color.hex }}>
+                      {color.name}
+                    </h3>
+                    <p className="text-[10px] text-text-muted mb-2">{color.chakra}</p>
+                    <p className="text-xs text-text-secondary leading-relaxed">{color.properties}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Disclaimer */}
+        <div className="mt-12 rounded-xl border border-blue-500/15 bg-blue-500/5 p-6 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-genesis-blue shrink-0 mt-0.5" />
           <p className="text-text-muted text-xs leading-relaxed">
-            <span className="font-heading font-bold text-text-secondary">Therapy Disclaimer:</span> The sound frequencies, light therapy information, and breathing exercises presented on this page are for educational and experimental purposes only. They are not intended to diagnose, treat, cure, or prevent any medical condition. Sound and light therapy should complement, not replace, professional medical treatment. If you have epilepsy, photosensitivity, respiratory conditions, or any other health concerns, consult a qualified healthcare provider before engaging with these tools. GENESIS is an educational platform and does not make medical claims.
+            These therapies are for relaxation and exploration. They are not medical treatments. Sound therapy, color therapy, and breathing exercises are complementary practices and should not replace professional medical care. If you have epilepsy or are sensitive to specific frequencies or flashing colors, use caution. Consult a healthcare provider for any medical concerns.
           </p>
         </div>
-      </section>
+      </main>
     </div>
   );
 }
