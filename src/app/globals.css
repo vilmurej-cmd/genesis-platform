@@ -1,26 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-heading: 'Exo 2', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-genesis-cyan: #00E5FF;
+  --color-genesis-magenta: #FF00E5;
+  --color-genesis-green: #00FF94;
+  --color-genesis-gold: #FFD700;
+  --color-genesis-blue: #0066FF;
+  --color-genesis-red: #FF3366;
+  --color-genesis-violet: #9945FF;
+  --color-genesis-white: #E8F0FF;
+
+  --color-system-skeletal: #E8DCC8;
+  --color-system-muscular: #CC3333;
+  --color-system-nervous: #FFD700;
+  --color-system-cardiovascular: #FF3366;
+  --color-system-respiratory: #66CCFF;
+  --color-system-digestive: #FF9933;
+  --color-system-endocrine: #9945FF;
+  --color-system-lymphatic: #00FF94;
+  --color-system-urinary: #FFCC00;
+  --color-system-reproductive: #FF66B2;
+
+  --color-severity-mild: #00FF94;
+  --color-severity-moderate: #FFD700;
+  --color-severity-severe: #FF9933;
+  --color-severity-critical: #FF3366;
+
+  --color-bg-void: #000408;
+  --color-bg-surface: #0A0E1A;
+  --color-bg-card: rgba(10, 14, 26, 0.85);
+  --color-bg-panel: rgba(0, 229, 255, 0.03);
+
+  --color-text-primary: #E8F0FF;
+  --color-text-secondary: #8BA4CC;
+  --color-text-muted: #4A6080;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #000408;
+  color: #E8F0FF;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Exo 2', sans-serif;
+}
+
+.font-heading { font-family: 'Exo 2', sans-serif; }
+.font-body { font-family: 'Inter', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Glow effects */
+.glow-cyan {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5), 0 0 40px rgba(0, 229, 255, 0.2);
+}
+.glow-magenta {
+  text-shadow: 0 0 20px rgba(255, 0, 229, 0.5), 0 0 40px rgba(255, 0, 229, 0.2);
+}
+.glow-green {
+  text-shadow: 0 0 20px rgba(0, 255, 148, 0.5), 0 0 40px rgba(0, 255, 148, 0.2);
+}
+.glow-gold {
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.2);
+}
+
+.box-glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15), 0 0 40px rgba(0, 229, 255, 0.05), inset 0 0 20px rgba(0, 229, 255, 0.03);
+}
+.box-glow-magenta {
+  box-shadow: 0 0 20px rgba(255, 0, 229, 0.15), 0 0 40px rgba(255, 0, 229, 0.05), inset 0 0 20px rgba(255, 0, 229, 0.03);
+}
+.box-glow-green {
+  box-shadow: 0 0 20px rgba(0, 255, 148, 0.15), 0 0 40px rgba(0, 255, 148, 0.05), inset 0 0 20px rgba(0, 255, 148, 0.03);
+}
+.box-glow-gold {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15), 0 0 40px rgba(255, 215, 0, 0.05), inset 0 0 20px rgba(255, 215, 0, 0.03);
+}
+
+/* Breathing animation */
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #000408; }
+::-webkit-scrollbar-thumb { background: #1a2235; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2a3a55; }
