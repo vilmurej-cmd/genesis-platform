@@ -4,10 +4,11 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-export default function Respiratory({ visible, isPaused, animationSpeed = 1 }: {
+export default function Respiratory({ visible, isPaused, animationSpeed = 1, onSelectOrgan }: {
   visible: boolean;
   isPaused?: boolean;
   animationSpeed?: number;
+  onSelectOrgan?: (organ: string) => void;
 }) {
   const leftLungRef = useRef<THREE.Mesh>(null);
   const rightLungRef = useRef<THREE.Mesh>(null);
@@ -108,7 +109,13 @@ export default function Respiratory({ visible, isPaused, animationSpeed = 1 }: {
       ))}
 
       {/* Left lung */}
-      <mesh ref={leftLungRef} position={[-0.17, 1.38, 0.02]}>
+      <mesh
+        ref={leftLungRef}
+        position={[-0.17, 1.38, 0.02]}
+        onClick={(e) => { e.stopPropagation(); onSelectOrgan?.('lungs'); }}
+        onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { document.body.style.cursor = 'default'; }}
+      >
         <sphereGeometry args={[0.12, 16, 12]} />
         <meshStandardMaterial
           color="#B3D9E8"
@@ -121,7 +128,13 @@ export default function Respiratory({ visible, isPaused, animationSpeed = 1 }: {
       </mesh>
 
       {/* Right lung (slightly larger) */}
-      <mesh ref={rightLungRef} position={[0.19, 1.38, 0.02]}>
+      <mesh
+        ref={rightLungRef}
+        position={[0.19, 1.38, 0.02]}
+        onClick={(e) => { e.stopPropagation(); onSelectOrgan?.('lungs'); }}
+        onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { document.body.style.cursor = 'default'; }}
+      >
         <sphereGeometry args={[0.14, 16, 12]} />
         <meshStandardMaterial
           color="#B3D9E8"

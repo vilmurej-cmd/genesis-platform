@@ -4,10 +4,11 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-export default function Digestive({ visible, isPaused, animationSpeed = 1 }: {
+export default function Digestive({ visible, isPaused, animationSpeed = 1, onSelectOrgan }: {
   visible: boolean;
   isPaused?: boolean;
   animationSpeed?: number;
+  onSelectOrgan?: (organ: string) => void;
 }) {
   const intestineRef = useRef<THREE.Mesh>(null);
 
@@ -68,7 +69,13 @@ export default function Digestive({ visible, isPaused, animationSpeed = 1 }: {
       </mesh>
 
       {/* Stomach */}
-      <mesh position={[-0.06, 1.15, 0.04]} rotation={[0, 0, 0.3]}>
+      <mesh
+        position={[-0.06, 1.15, 0.04]}
+        rotation={[0, 0, 0.3]}
+        onClick={(e) => { e.stopPropagation(); onSelectOrgan?.('stomach'); }}
+        onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { document.body.style.cursor = 'default'; }}
+      >
         <sphereGeometry args={[0.08, 12, 10]} />
         <meshStandardMaterial
           color="#8B6914"
@@ -80,7 +87,12 @@ export default function Digestive({ visible, isPaused, animationSpeed = 1 }: {
       </mesh>
 
       {/* Liver */}
-      <mesh position={[0.1, 1.2, 0.05]}>
+      <mesh
+        position={[0.1, 1.2, 0.05]}
+        onClick={(e) => { e.stopPropagation(); onSelectOrgan?.('liver'); }}
+        onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { document.body.style.cursor = 'default'; }}
+      >
         <sphereGeometry args={[0.1, 12, 10]} />
         <meshStandardMaterial
           color="#8B4513"
@@ -98,7 +110,13 @@ export default function Digestive({ visible, isPaused, animationSpeed = 1 }: {
       </mesh>
 
       {/* Pancreas */}
-      <mesh position={[0, 1.08, 0.02]} rotation={[0, 0, 0.1]}>
+      <mesh
+        position={[0, 1.08, 0.02]}
+        rotation={[0, 0, 0.1]}
+        onClick={(e) => { e.stopPropagation(); onSelectOrgan?.('pancreas'); }}
+        onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { document.body.style.cursor = 'default'; }}
+      >
         <capsuleGeometry args={[0.015, 0.12, 6, 8]} />
         <meshStandardMaterial color="#E8B94A" emissive="#FFCC00" emissiveIntensity={0.2} transparent opacity={0.5} />
       </mesh>

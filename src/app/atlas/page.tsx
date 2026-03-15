@@ -632,9 +632,17 @@ export default function AtlasPage() {
         <h1 className="font-heading font-black text-4xl sm:text-5xl text-genesis-cyan glow-cyan tracking-tight mb-2">
           THE LIVING BODY
         </h1>
-        <p className="text-text-secondary text-lg font-heading font-light">
-          Interactive anatomical atlas — toggle systems, click structures, explore connections.
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-text-secondary text-lg font-heading font-light flex-1">
+            Interactive anatomical atlas — toggle systems, click structures, explore connections.</p>
+          <Link
+            href="/explore"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-sm font-semibold hover:bg-cyan-500/20 transition-all whitespace-nowrap"
+          >
+            <Eye className="w-4 h-4" />
+            Enter 3D Mode
+          </Link>
+        </div>
         <div className="flex items-center gap-3 mt-3 text-text-muted text-sm">
           <span className="font-mono">{activeCount} systems active</span>
           <span className="text-white/10">|</span>

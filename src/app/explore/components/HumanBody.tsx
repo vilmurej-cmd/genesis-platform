@@ -36,8 +36,8 @@ export default function HumanBody() {
       <Muscular visible={activeSystems.has('muscular')} />
       <Circulatory visible={activeSystems.has('circulatory')} isPaused={isPaused} />
       <Nervous visible={activeSystems.has('nervous')} isPaused={isPaused} />
-      <Respiratory visible={activeSystems.has('respiratory')} isPaused={isPaused} animationSpeed={animationSpeed} />
-      <Digestive visible={activeSystems.has('digestive')} isPaused={isPaused} animationSpeed={animationSpeed} />
+      <Respiratory visible={activeSystems.has('respiratory')} isPaused={isPaused} animationSpeed={animationSpeed} onSelectOrgan={selectOrgan} />
+      <Digestive visible={activeSystems.has('digestive')} isPaused={isPaused} animationSpeed={animationSpeed} onSelectOrgan={selectOrgan} />
       <Urinary visible={activeSystems.has('urinary')} />
       <Endocrine visible={activeSystems.has('endocrine')} isPaused={isPaused} />
       <Lymphatic visible={activeSystems.has('lymphatic')} />
