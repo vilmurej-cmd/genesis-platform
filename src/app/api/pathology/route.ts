@@ -103,6 +103,48 @@ const GENERIC_DEMO = {
   severity: 'moderate' as const,
 };
 
+/**
+ * Transform any raw disease data (from GPT or demo) to match the frontend DiseaseData interface.
+ * Handles multiple possible field names and shapes from GPT-4o responses.
+ */
+function transformToDiseaseData(raw: any): any {
+  const affectedSystems = raw.affectedSystems || raw.affected_systems || [];
+  const stages = raw.stages || raw.progression || [];
+  const stagesLen = stages.length || 1;
+  const treatments = raw.treatments || raw.currentTreatments || raw.current_treatments || [];
+  const research = raw.research || raw.experimentalTreatments || raw.experimental_treatments || [];
+  const severity = raw.severity || 'moderate';
+  const pathophysiology = raw.pathophysiology || raw.description || '';
+
+  return {
+    name: raw.name || raw.condition || 'Unknown Condition',
+    affectedSystem: (typeof affectedSystems[0] === 'string' ? affectedSystems[0] : affectedSystems[0]?.name) || 'Multiple Systems',
+    severity,
+    description: raw.description || (pathophysiology.length > 200 ? pathophysiology.slice(0, 200) + '...' : pathophysiology),
+    pathophysiology,
+    affectedSystems: affectedSystems.map((s: any) =>
+      typeof s === 'string'
+        ? { name: s, impact: 'Significant involvement in disease progression' }
+        : { name: s.name || s.system || s, impact: s.impact || s.description || 'Significant involvement in disease progression' }
+    ),
+    stages: stages.map((s: any, i: number) => ({
+      name: s.name || s.stage || s.title || `Stage ${i + 1}`,
+      description: s.description || '',
+      severity: s.severity || (i < stagesLen / 3 ? 'mild' : i < (stagesLen * 2) / 3 ? 'moderate' : 'severe'),
+    })),
+    treatments: treatments.map((t: any) =>
+      typeof t === 'string'
+        ? { name: t, type: 'medication' as const, description: `Current standard of care: ${t}` }
+        : { name: t.name || t.treatment || t, type: t.type || 'medication', description: t.description || `Treatment: ${t.name || t}` }
+    ),
+    research: research.map((r: any) =>
+      typeof r === 'string'
+        ? { name: r, phase: 'Experimental', description: `Experimental treatment under investigation: ${r}` }
+        : { name: r.name || r.treatment || r, phase: r.phase || r.status || 'Experimental', description: r.description || `Research: ${r.name || r}` }
+    ),
+  };
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get('q') || '').trim().toLowerCase();
@@ -132,43 +174,14 @@ export async function GET(req: Request) {
       });
 
       const data = JSON.parse(res.choices[0].message.content || '{}');
-      return NextResponse.json(data);
+      return NextResponse.json(transformToDiseaseData(data));
     } catch (err: any) {
       console.error('Pathology AI error:', err.message);
     }
   }
 
-  /* ── Demo fallback — transform to match frontend DiseaseData interface ── */
+  /* ── Demo fallback ── */
   const match = Object.keys(DEMO_DATA).find((k) => q.includes(k) || k.includes(q));
   const raw = match ? DEMO_DATA[match] : { ...GENERIC_DEMO, name: q.charAt(0).toUpperCase() + q.slice(1) };
-
-  const transformed = {
-    name: raw.name,
-    affectedSystem: raw.affectedSystems?.[0] || 'Multiple Systems',
-    severity: raw.severity,
-    description: raw.pathophysiology?.slice(0, 200) + '...',
-    pathophysiology: raw.pathophysiology,
-    affectedSystems: (raw.affectedSystems || []).map((s: string) => ({
-      name: s,
-      impact: 'Significant involvement in disease progression',
-    })),
-    stages: (raw.stages || []).map((s: any, i: number) => ({
-      name: s.stage,
-      description: s.description,
-      severity: i < raw.stages.length / 3 ? 'mild' : i < (raw.stages.length * 2) / 3 ? 'moderate' : 'severe',
-    })),
-    treatments: [
-      ...(raw.currentTreatments || []).map((t: string) => ({
-        name: t,
-        type: 'medication' as const,
-        description: `Current standard of care: ${t}`,
-      })),
-    ],
-    research: (raw.experimentalTreatments || []).map((t: string) => ({
-      name: t,
-      phase: 'Experimental',
-      description: `Experimental treatment under investigation: ${t}`,
-    })),
-  };
-  return NextResponse.json(transformed);
+  return NextResponse.json(transformToDiseaseData(raw));
 }

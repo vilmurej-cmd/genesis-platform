@@ -71,7 +71,21 @@ export async function POST(req: Request) {
         });
 
         const data = JSON.parse(res.choices[0].message.content || '{}');
-        return NextResponse.json(data);
+        const approaches = data.approaches || [];
+        const allHerbs = approaches.flatMap((a: any) => a.herbs || []);
+        const allLifestyle = approaches.flatMap((a: any) => a.lifestyle || []);
+        const avgEvidence = approaches.length
+          ? Math.round(approaches.reduce((s: number, a: any) => s + (a.evidenceLevel || a.evidence_level || 3), 0) / approaches.length)
+          : 3;
+        return NextResponse.json({
+          condition: data.condition || condition,
+          approaches: approaches.map((a: any) => ({ tradition: a.tradition || '', recommendation: a.recommendation || '' })),
+          herbs: allHerbs,
+          lifestyle: allLifestyle,
+          evidenceRating: avgEvidence,
+          warnings: data.warnings || [],
+          disclaimer: data.disclaimer || '',
+        });
       } catch (err: any) {
         console.error('Holistic AI error:', err.message);
       }

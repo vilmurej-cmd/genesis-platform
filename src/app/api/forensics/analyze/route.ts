@@ -62,7 +62,35 @@ export async function POST(req: Request) {
         });
 
         const data = JSON.parse(res.choices[0].message.content || '{}');
-        return NextResponse.json(data);
+        const toxicology = data.toxicology || [];
+        return NextResponse.json({
+          id: 'ai-analysis',
+          title: data.title || 'AI Forensic Analysis',
+          scenario: scenario,
+          evidence: (data.evidence || []).map((e: any) =>
+            typeof e === 'string'
+              ? { label: e, detail: e, severity: 'moderate' }
+              : { label: e.label || e.name || '', detail: e.detail || e.description || '', severity: e.severity || 'moderate' }
+          ),
+          postMortemFindings: data.postMortemFindings || data.post_mortem_findings || data.findings || [],
+          timeline: (data.timeline || []).map((t: any) =>
+            typeof t === 'string'
+              ? { time: '', event: t, significance: 'notable' }
+              : { time: t.time || '', event: t.event || t.description || '', significance: t.significance || 'notable' }
+          ),
+          analysis: {
+            probableCause: data.analysis?.probableCause || data.causeOfDeath || data.cause_of_death || '',
+            mannerOfDeath: data.analysis?.mannerOfDeath || data.mannerOfDeath || data.manner_of_death || '',
+            timeOfDeathEstimate: data.analysis?.timeOfDeathEstimate || data.timeOfDeath || data.time_of_death || '',
+            toxicology: Array.isArray(toxicology) ? toxicology.map((t: any) =>
+              typeof t === 'string'
+                ? { substance: t, level: 'Detected', significance: '' }
+                : { substance: t.substance || t.name || '', level: t.level || '', significance: t.significance || '' }
+            ) : [],
+            traumaAnalysis: data.analysis?.traumaAnalysis || (typeof data.traumaAnalysis === 'string' ? [data.traumaAnalysis] : data.traumaAnalysis) || data.trauma_analysis || [],
+            additionalFindings: data.analysis?.additionalFindings || data.recommendations || data.additional_findings || [],
+          },
+        });
       } catch (err: any) {
         console.error('Forensics AI error:', err.message);
       }

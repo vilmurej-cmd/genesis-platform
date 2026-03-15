@@ -47,7 +47,14 @@ export async function POST(req: Request) {
         });
 
         const data = JSON.parse(res.choices[0].message.content || '{}');
-        return NextResponse.json(data);
+        return NextResponse.json({
+          synergyScore: data.synergyScore ?? data.synergy_score ?? 50,
+          predictedEffects: data.predictedEffects || data.predicted_effects || data.effects || [],
+          interactionWarnings: data.interactionWarnings || data.interaction_warnings || data.warnings || [],
+          efficacyEstimate: data.efficacyEstimate || data.efficacy_estimate || data.efficacy || '',
+          mechanismAnalysis: data.mechanismAnalysis || data.mechanism_analysis || data.mechanism || '',
+          riskLevel: data.riskLevel || data.risk_level || 'moderate',
+        });
       } catch (err: any) {
         console.error('Lab simulate AI error:', err.message);
       }

@@ -50,7 +50,15 @@ export async function POST(req: Request) {
         });
 
         const data = JSON.parse(res.choices[0].message.content || '{}');
-        return NextResponse.json(data);
+        const existingResearch = data.existingResearch || data.existing_research || [];
+        return NextResponse.json({
+          plausibilityScore: data.plausibilityScore ?? data.plausibility_score ?? 50,
+          mechanismAnalysis: data.mechanismAnalysis || data.mechanism_analysis || data.mechanism || '',
+          potentialOutcomes: data.potentialOutcomes || data.potential_outcomes || data.outcomes || [],
+          existingResearch: existingResearch.map((r: any) => typeof r === 'string' ? r : `${r.title || r.name} — ${r.finding || r.summary || ''}`),
+          riskAssessment: data.riskAssessment || data.risk_assessment || data.risk || '',
+          verdict: data.verdict || '',
+        });
       } catch (err: any) {
         console.error('Lab discover AI error:', err.message);
       }
