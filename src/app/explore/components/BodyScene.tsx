@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { useGenesisStore } from '../store';
 import HumanBody from './HumanBody';
 import CellScene from './micro/CellScene';
+import SimulationEffects from './SimulationEffects';
 
 /* Ambient particle field — floating particles in the void */
 function AmbientParticles() {
@@ -135,6 +136,11 @@ function animateCamera(
 
 export default function BodyScene() {
   const zoomLevel = useGenesisStore((s) => s.zoomLevel);
+  const simulationMode = useGenesisStore((s) => s.simulationMode);
+  const agingAge = useGenesisStore((s) => s.agingAge);
+  const exerciseIntensity = useGenesisStore((s) => s.exerciseIntensity);
+  const comparisonType = useGenesisStore((s) => s.comparisonType);
+  const injuryType = useGenesisStore((s) => s.injuryType);
 
   return (
     <Canvas
@@ -165,6 +171,15 @@ export default function BodyScene() {
 
         {/* Cell scene — only when zoom is at cell level */}
         <CellScene visible={zoomLevel === 'cell'} />
+
+        {/* Simulation mode effects */}
+        <SimulationEffects
+          mode={simulationMode}
+          agingAge={agingAge}
+          exerciseIntensity={exerciseIntensity}
+          comparisonType={comparisonType}
+          injuryType={injuryType}
+        />
       </Suspense>
     </Canvas>
   );

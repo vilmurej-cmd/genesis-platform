@@ -89,6 +89,18 @@ interface GenesisStore {
   toggleXrayMode: () => void;
   soundEnabled: boolean;
   toggleSound: () => void;
+
+  // Simulation modes
+  simulationMode: 'comparison' | 'aging' | 'exercise' | 'injury' | null;
+  setSimulationMode: (mode: 'comparison' | 'aging' | 'exercise' | 'injury' | null) => void;
+  agingAge: number;
+  setAgingAge: (age: number) => void;
+  exerciseIntensity: number;
+  setExerciseIntensity: (v: number) => void;
+  comparisonType: string;
+  setComparisonType: (v: string) => void;
+  injuryType: string;
+  setInjuryType: (v: string) => void;
 }
 
 export const useGenesisStore = create<GenesisStore>((set) => ({
@@ -151,4 +163,16 @@ export const useGenesisStore = create<GenesisStore>((set) => ({
   toggleXrayMode: () => set((s) => ({ xrayMode: !s.xrayMode })),
   soundEnabled: false,
   toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
+
+  // Simulation modes
+  simulationMode: null,
+  setSimulationMode: (mode) => set({ simulationMode: mode }),
+  agingAge: 30,
+  setAgingAge: (age) => set({ agingAge: age }),
+  exerciseIntensity: 0,
+  setExerciseIntensity: (v) => set({ exerciseIntensity: v }),
+  comparisonType: 'smoker',
+  setComparisonType: (v) => set({ comparisonType: v }),
+  injuryType: 'fracture',
+  setInjuryType: (v) => set({ injuryType: v }),
 }));

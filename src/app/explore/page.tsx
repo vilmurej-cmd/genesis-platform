@@ -12,6 +12,7 @@ import DiseaseTimeline from './components/disease/DiseaseTimeline';
 import HealthMeter from './components/cure/HealthMeter';
 import SoundEngine from './components/SoundEngine';
 import TreatmentPanel from './components/ui/TreatmentPanel';
+import ExtraModesPanel from './components/ui/ExtraModesPanel';
 
 /* Dynamic import for R3F — must be client-only, no SSR */
 const BodyScene = dynamic(() => import('./components/BodyScene'), {
@@ -91,6 +92,7 @@ export default function ExplorePage() {
       <DiseaseTimeline />
       <HealthMeter />
       <TreatmentPanel />
+      <ExtraModesPanel />
       <SoundEngine />
 
       {/* Bottom-right controls legend */}
