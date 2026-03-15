@@ -1,558 +1,445 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Search,
+  FlaskConical,
+  Beaker,
+  Lightbulb,
+  Puzzle,
+  Plus,
+  X,
+  Loader2,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  Trophy,
+  Sparkles,
+  Pill,
+  Leaf,
+  Atom,
+  Shield,
+  Zap,
+  CircleDot,
+  Target,
+} from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
    ═══════════════════════════════════════════════════════════════════════════ */
 
-interface Pharmaceutical {
+interface Compound {
   name: string;
-  class: string;
+  type: 'pharmaceutical' | 'natural' | 'experimental';
   mechanism: string;
-  uses: string[];
-  route: string;
-}
-
-interface NaturalCompound {
-  name: string;
-  category: string;
-  mechanism: string;
-  uses: string[];
-  evidenceRating: number;
-}
-
-interface FrequencyCompound {
-  frequency: number;
-  name: string;
-  description: string;
-  evidenceRating: number;
-}
-
-interface ExperimentalCompound {
-  name: string;
-  mechanism: string;
-  researchStatus: string;
-  evidenceRating: number;
-}
-
-type AnyCompound = Pharmaceutical | NaturalCompound | FrequencyCompound | ExperimentalCompound;
-
-interface CraftingSlot {
-  compound: AnyCompound;
-  type: 'pharmaceutical' | 'natural' | 'frequency' | 'experimental';
-  dosage: 'low' | 'standard' | 'high';
-}
-
-interface Disease {
-  name: string;
-  systems: string[];
-  description: string;
-  color: string;
-}
-
-interface TimelineEntry {
-  day: string;
-  effect: string;
-}
-
-interface SideEffect {
-  name: string;
-  severity: 'mild' | 'moderate' | 'severe';
+  targets: string[];
+  sideEffects: string[];
+  interactionWarnings: string[];
 }
 
 interface SimulationResult {
-  overallScore: number;
-  mechanismExplanation: string;
-  timeline: TimelineEntry[];
-  sideEffects: SideEffect[];
-  interactions: string[];
-  aiHint: string;
+  synergyScore: number;
+  predictedEffects: string[];
+  interactionWarnings: string[];
+  efficacyEstimate: string;
+  mechanismAnalysis: string;
 }
 
-interface MastermindAttempt {
-  id: number;
-  compounds: { name: string; color: 'green' | 'yellow' | 'red' | 'white' }[];
-  score: number;
-  timestamp: number;
+interface MastermindFeedback {
+  compound: string;
+  status: 'correct' | 'category' | 'wrong';
 }
 
-interface DiscoveryCard {
-  compoundName: string;
-  currentUse: string;
-  theoreticalMechanism: string;
-  molecularBasis: string;
+interface MastermindGuess {
+  compounds: string[];
+  feedback: MastermindFeedback[];
+}
+
+interface DiscoveryResult {
+  plausibilityScore: number;
+  mechanismAnalysis: string;
+  potentialOutcomes: string[];
+  existingResearch: string[];
+  riskAssessment: string;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DATA
+   COMPOUND DATABASE (15 compounds)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const DISEASES: Disease[] = [
-  { name: 'Asthma', systems: ['Respiratory'], description: 'Chronic inflammatory disease of the airways causing reversible airflow obstruction and bronchospasm', color: '#66CCFF' },
-  { name: 'Type 2 Diabetes', systems: ['Endocrine', 'Cardiovascular'], description: 'Metabolic disorder characterized by insulin resistance and relative insulin deficiency', color: '#9945FF' },
-  { name: 'Breast Cancer', systems: ['Reproductive', 'Lymphatic'], description: 'Malignant neoplasm originating in breast tissue, often hormone-receptor positive', color: '#FF66B2' },
-  { name: "Alzheimer's Disease", systems: ['Nervous'], description: 'Progressive neurodegenerative disorder causing memory loss and cognitive decline through amyloid plaque accumulation', color: '#FFD700' },
-  { name: 'Childhood ALL', systems: ['Lymphatic', 'Cardiovascular'], description: 'Acute lymphoblastic leukemia — the most common childhood cancer, affecting B or T lymphocyte precursors in bone marrow', color: '#00FF94' },
-  { name: 'Heart Attack', systems: ['Cardiovascular'], description: 'Myocardial infarction caused by coronary artery occlusion leading to ischemic death of heart muscle tissue', color: '#FF3366' },
+const COMPOUNDS: Compound[] = [
+  {
+    name: 'Aspirin',
+    type: 'pharmaceutical',
+    mechanism: 'Irreversibly inhibits COX-1 and COX-2 enzymes, blocking prostaglandin and thromboxane A2 synthesis. Reduces platelet aggregation and inflammation.',
+    targets: ['Cardiovascular', 'Musculoskeletal', 'Nervous'],
+    sideEffects: ['GI bleeding', 'Tinnitus at high doses', 'Reye syndrome in children'],
+    interactionWarnings: ['Warfarin — increased bleeding risk', 'NSAIDs — reduced cardioprotection', 'Methotrexate — reduced clearance'],
+  },
+  {
+    name: 'Metformin',
+    type: 'pharmaceutical',
+    mechanism: 'Activates AMP-kinase, suppressing hepatic glucose production. Improves insulin sensitivity in peripheral tissues. May inhibit mitochondrial complex I.',
+    targets: ['Endocrine', 'Digestive', 'Cardiovascular'],
+    sideEffects: ['GI disturbance', 'Lactic acidosis (rare)', 'B12 deficiency (long-term)'],
+    interactionWarnings: ['Contrast dye — hold 48h for renal protection', 'Alcohol — increased lactic acidosis risk'],
+  },
+  {
+    name: 'Doxorubicin',
+    type: 'pharmaceutical',
+    mechanism: 'Intercalates into DNA, inhibits topoisomerase II, and generates free radicals causing DNA damage. Triggers apoptosis in rapidly dividing cells.',
+    targets: ['Lymphatic', 'Cardiovascular'],
+    sideEffects: ['Cardiotoxicity (cumulative)', 'Myelosuppression', 'Alopecia', 'Nausea/vomiting'],
+    interactionWarnings: ['Trastuzumab — synergistic cardiotoxicity', 'Cyclosporine — increased doxorubicin levels'],
+  },
+  {
+    name: 'Penicillin',
+    type: 'pharmaceutical',
+    mechanism: 'Binds penicillin-binding proteins (PBPs), inhibiting transpeptidase-mediated cross-linking of peptidoglycan cell walls. Causes osmotic lysis of bacteria.',
+    targets: ['Lymphatic', 'Respiratory'],
+    sideEffects: ['Allergic reactions', 'Anaphylaxis (rare)', 'GI disturbance', 'C. difficile overgrowth'],
+    interactionWarnings: ['Methotrexate — reduced renal clearance', 'Warfarin — potentiated anticoagulation'],
+  },
+  {
+    name: 'Morphine',
+    type: 'pharmaceutical',
+    mechanism: 'Agonist at mu-opioid receptors in the CNS and periphery. Inhibits ascending pain pathways, alters pain perception and emotional response to pain.',
+    targets: ['Nervous', 'Respiratory', 'Digestive'],
+    sideEffects: ['Respiratory depression', 'Constipation', 'Dependence/tolerance', 'Sedation', 'Nausea'],
+    interactionWarnings: ['Benzodiazepines — life-threatening respiratory depression', 'MAOIs — serotonin syndrome risk'],
+  },
+  {
+    name: 'Curcumin',
+    type: 'natural',
+    mechanism: 'Modulates NF-kB, COX-2, and multiple inflammatory cytokines (TNF-alpha, IL-6). Exhibits antioxidant properties via Nrf2 pathway activation.',
+    targets: ['Digestive', 'Musculoskeletal', 'Nervous'],
+    sideEffects: ['Poor bioavailability without piperine', 'GI discomfort at high doses', 'Iron chelation'],
+    interactionWarnings: ['Blood thinners — additive anticoagulant effect', 'Diabetes medications — may lower blood sugar further'],
+  },
+  {
+    name: 'Resveratrol',
+    type: 'natural',
+    mechanism: 'Activates SIRT1 (sirtuin 1) deacetylase, modulating cellular stress response and mitochondrial biogenesis. Inhibits NF-kB inflammatory pathway.',
+    targets: ['Cardiovascular', 'Nervous', 'Endocrine'],
+    sideEffects: ['GI discomfort', 'Headache', 'Low bioavailability'],
+    interactionWarnings: ['Anticoagulants — increased bleeding risk', 'CYP3A4 substrates — potential drug interactions'],
+  },
+  {
+    name: 'CBD',
+    type: 'natural',
+    mechanism: 'Modulates endocannabinoid system without direct CB1 binding. Activates 5-HT1A serotonin receptors, TRPV1 pain receptors, and inhibits FAAH enzyme.',
+    targets: ['Nervous', 'Lymphatic', 'Musculoskeletal'],
+    sideEffects: ['Fatigue', 'Diarrhea', 'Appetite changes', 'Potential liver enzyme elevation'],
+    interactionWarnings: ['CYP3A4/CYP2C19 inhibition — affects many medications', 'Clobazam — increased levels up to 3x'],
+  },
+  {
+    name: 'Quercetin',
+    type: 'natural',
+    mechanism: 'Potent flavonoid antioxidant that inhibits lipid peroxidation, scavenges free radicals, chelates metal ions. Inhibits inflammatory enzymes LOX and COX.',
+    targets: ['Lymphatic', 'Cardiovascular', 'Respiratory'],
+    sideEffects: ['Headache', 'GI discomfort', 'Kidney toxicity at very high doses'],
+    interactionWarnings: ['Antibiotics (fluoroquinolones) — may reduce efficacy', 'Cyclosporine — increased blood levels'],
+  },
+  {
+    name: 'Rapamycin',
+    type: 'experimental',
+    mechanism: 'Inhibits mTOR (mechanistic target of rapamycin) complex 1, suppressing cell growth, proliferation, and metabolism. Promotes autophagy and extends cellular lifespan.',
+    targets: ['Lymphatic', 'Cardiovascular', 'Nervous'],
+    sideEffects: ['Immunosuppression', 'Hyperlipidemia', 'Impaired wound healing', 'Mouth ulcers'],
+    interactionWarnings: ['CYP3A4 inhibitors — dramatically increased levels', 'Live vaccines — contraindicated'],
+  },
+  {
+    name: 'Ibuprofen',
+    type: 'pharmaceutical',
+    mechanism: 'Reversibly inhibits COX-1 and COX-2 enzymes, reducing prostaglandin synthesis. Decreases inflammation, pain, and fever through peripheral and central mechanisms.',
+    targets: ['Musculoskeletal', 'Nervous'],
+    sideEffects: ['GI ulceration', 'Renal impairment', 'Cardiovascular risk (high doses)', 'Bronchospasm (aspirin-sensitive)'],
+    interactionWarnings: ['Aspirin — blocks cardioprotective effect if taken before aspirin', 'ACE inhibitors — reduced antihypertensive effect'],
+  },
+  {
+    name: 'Amoxicillin',
+    type: 'pharmaceutical',
+    mechanism: 'Extended-spectrum penicillin that inhibits bacterial cell wall synthesis. Better oral absorption than ampicillin. Effective against many gram-positive and some gram-negative bacteria.',
+    targets: ['Lymphatic', 'Respiratory', 'Digestive'],
+    sideEffects: ['Diarrhea', 'Rash (especially with EBV)', 'Allergic reactions', 'C. difficile risk'],
+    interactionWarnings: ['Allopurinol — increased rash risk', 'Oral contraceptives — potentially reduced efficacy'],
+  },
+  {
+    name: 'Lisinopril',
+    type: 'pharmaceutical',
+    mechanism: 'ACE inhibitor that blocks conversion of angiotensin I to angiotensin II. Reduces aldosterone secretion, decreases preload/afterload, prevents cardiac remodeling.',
+    targets: ['Cardiovascular', 'Urinary'],
+    sideEffects: ['Dry cough (bradykinin accumulation)', 'Hyperkalemia', 'Angioedema (rare)', 'First-dose hypotension'],
+    interactionWarnings: ['Potassium supplements/spironolactone — hyperkalemia', 'NSAIDs — reduced antihypertensive effect and renal risk'],
+  },
+  {
+    name: 'Omeprazole',
+    type: 'pharmaceutical',
+    mechanism: 'Proton pump inhibitor (PPI) that irreversibly binds H+/K+ ATPase in parietal cells, blocking the final step of gastric acid secretion. Raises gastric pH for 24+ hours.',
+    targets: ['Digestive'],
+    sideEffects: ['B12/magnesium deficiency (long-term)', 'C. difficile risk', 'Bone fracture risk', 'Rebound acid hypersecretion'],
+    interactionWarnings: ['Clopidogrel — reduced activation (CYP2C19 inhibition)', 'Methotrexate — increased levels'],
+  },
+  {
+    name: 'Levothyroxine',
+    type: 'pharmaceutical',
+    mechanism: 'Synthetic T4 (thyroxine) that converts to active T3 in peripheral tissues. Binds nuclear thyroid receptors to regulate metabolic rate, growth, and development.',
+    targets: ['Endocrine', 'Cardiovascular', 'Nervous'],
+    sideEffects: ['Palpitations/tachycardia (if over-replaced)', 'Insomnia', 'Weight loss', 'Osteoporosis risk'],
+    interactionWarnings: ['Calcium/iron supplements — reduced absorption (take 4h apart)', 'Warfarin — increased anticoagulant effect'],
+  },
 ];
-
-const PHARMACEUTICALS: Pharmaceutical[] = [
-  { name: 'Albuterol', class: 'Bronchodilator', mechanism: 'Selectively stimulates beta-2 adrenergic receptors in bronchial smooth muscle, causing rapid relaxation and airway dilation', uses: ['Asthma', 'COPD', 'Exercise-induced bronchospasm'], route: 'Inhaled' },
-  { name: 'Metformin', class: 'Antidiabetic (Biguanide)', mechanism: 'Decreases hepatic glucose production and increases insulin sensitivity in peripheral tissues by activating AMP-activated protein kinase', uses: ['Type 2 Diabetes', 'PCOS', 'Insulin resistance'], route: 'Oral' },
-  { name: 'Tamoxifen', class: 'Anti-estrogen (SERM)', mechanism: 'Competitively binds estrogen receptors in breast tissue, blocking estrogen-driven tumor proliferation while acting as partial agonist elsewhere', uses: ['Breast Cancer', 'ER+ tumors', 'Chemoprevention'], route: 'Oral' },
-  { name: 'Donepezil', class: 'Cholinesterase Inhibitor', mechanism: 'Reversibly inhibits acetylcholinesterase, increasing acetylcholine concentration at cholinergic synapses to compensate for neuronal loss', uses: ["Alzheimer's Disease", 'Dementia', 'Cognitive decline'], route: 'Oral' },
-  { name: 'Aspirin', class: 'Antiplatelet / NSAID', mechanism: 'Irreversibly inhibits cyclooxygenase-1, preventing thromboxane A2 synthesis and platelet aggregation', uses: ['Heart Attack prevention', 'Stroke prevention', 'Pain', 'Inflammation'], route: 'Oral' },
-  { name: 'Methotrexate', class: 'Antimetabolite', mechanism: 'Inhibits dihydrofolate reductase, blocking folic acid metabolism essential for DNA synthesis in rapidly dividing cancer cells', uses: ['Childhood ALL', 'Breast Cancer', 'Rheumatoid Arthritis'], route: 'Oral / IV / Intrathecal' },
-  { name: 'Vincristine', class: 'Vinca Alkaloid', mechanism: 'Binds tubulin dimers and prevents microtubule polymerization, arresting mitosis at metaphase in dividing cancer cells', uses: ['Childhood ALL', 'Lymphomas', 'Solid tumors'], route: 'IV' },
-  { name: 'Prednisone', class: 'Corticosteroid', mechanism: 'Binds glucocorticoid receptors to suppress inflammatory gene transcription, induce lymphocyte apoptosis, and reduce immune response', uses: ['Childhood ALL', 'Asthma exacerbations', 'Autoimmune disorders'], route: 'Oral' },
-  { name: 'L-Asparaginase', class: 'Enzyme Therapy', mechanism: 'Depletes circulating asparagine, starving ALL blast cells that lack asparagine synthetase and cannot produce their own', uses: ['Childhood ALL', 'Acute lymphoblastic leukemia'], route: 'IM / IV' },
-  { name: 'Cisplatin', class: 'Alkylating Agent', mechanism: 'Forms platinum-DNA adducts that cross-link DNA strands, preventing replication and triggering apoptosis in cancer cells', uses: ['Breast Cancer', 'Ovarian Cancer', 'Lung Cancer', 'Testicular Cancer'], route: 'IV' },
-  { name: 'Lisinopril', class: 'ACE Inhibitor', mechanism: 'Inhibits angiotensin-converting enzyme, reducing angiotensin II levels to lower blood pressure and decrease cardiac afterload', uses: ['Heart Attack recovery', 'Hypertension', 'Heart Failure'], route: 'Oral' },
-  { name: 'Atorvastatin', class: 'Statin', mechanism: 'Competitively inhibits HMG-CoA reductase, reducing hepatic cholesterol synthesis and upregulating LDL receptor expression', uses: ['Heart Attack prevention', 'Hyperlipidemia', 'Atherosclerosis'], route: 'Oral' },
-  { name: 'Ibuprofen', class: 'NSAID', mechanism: 'Reversibly inhibits COX-1 and COX-2 enzymes, reducing prostaglandin synthesis to decrease pain, fever, and inflammation', uses: ['Pain', 'Inflammation', 'Fever', 'Arthritis'], route: 'Oral' },
-  { name: 'Morphine', class: 'Opioid Analgesic', mechanism: 'Binds mu-opioid receptors in CNS and peripheral nervous system, inhibiting pain signal transmission and altering pain perception', uses: ['Severe pain', 'Heart Attack pain', 'Post-surgical pain'], route: 'Oral / IV / IM' },
-  { name: 'Levothyroxine', class: 'Thyroid Hormone', mechanism: 'Synthetic T4 that converts to active T3, restoring normal metabolic rate by binding nuclear thyroid receptors', uses: ['Hypothyroidism', 'Thyroid cancer suppression', 'Myxedema'], route: 'Oral' },
-];
-
-const NATURALS: NaturalCompound[] = [
-  { name: 'Turmeric / Curcumin', category: 'Anti-inflammatory', mechanism: 'Inhibits NF-kB signaling and COX-2 expression, reducing systemic inflammation and oxidative stress', uses: ['Inflammation', 'Joint pain', 'Cancer adjunct'], evidenceRating: 4 },
-  { name: 'Omega-3 Fatty Acids', category: 'Essential Fatty Acid', mechanism: 'Competes with arachidonic acid to produce anti-inflammatory eicosanoids, reduces triglycerides and stabilizes cardiac membranes', uses: ['Heart health', 'Inflammation', 'Brain function'], evidenceRating: 5 },
-  { name: 'Vitamin D', category: 'Vitamin / Hormone', mechanism: 'Binds VDR nuclear receptors to modulate immune function, calcium absorption, and gene expression in over 200 genes', uses: ['Immune support', 'Bone health', 'Cancer prevention'], evidenceRating: 5 },
-  { name: 'Zinc', category: 'Essential Mineral', mechanism: 'Cofactor for 300+ enzymes, supports T-cell development and natural killer cell activity, essential for DNA synthesis', uses: ['Immune function', 'Wound healing', 'Growth'], evidenceRating: 4 },
-  { name: 'Ashwagandha', category: 'Adaptogen', mechanism: 'Withanolides modulate cortisol response, GABAergic signaling, and hypothalamic-pituitary-adrenal axis to reduce stress', uses: ['Stress', 'Anxiety', 'Fatigue', 'Cognitive function'], evidenceRating: 3 },
-  { name: "Lion's Mane", category: 'Medicinal Mushroom', mechanism: 'Hericenones and erinacines stimulate nerve growth factor (NGF) synthesis, promoting neuronal growth and myelination', uses: ['Cognitive decline', 'Nerve regeneration', 'Neuroprotection'], evidenceRating: 3 },
-  { name: 'Turkey Tail', category: 'Medicinal Mushroom', mechanism: 'Polysaccharopeptide PSK activates dendritic cells and enhances cytotoxic T-cell response against tumor cells', uses: ['Cancer adjunct', 'Immune modulation', 'Gut health'], evidenceRating: 4 },
-  { name: 'Green Tea (EGCG)', category: 'Polyphenol', mechanism: 'Epigallocatechin gallate inhibits VEGF-mediated angiogenesis and induces apoptosis in cancer cells through multiple pathways', uses: ['Cancer prevention', 'Metabolism', 'Antioxidant'], evidenceRating: 4 },
-  { name: 'Ginger', category: 'Anti-inflammatory', mechanism: 'Gingerols and shogaols inhibit prostaglandin synthesis and suppress pro-inflammatory cytokines TNF-alpha and IL-6', uses: ['Nausea', 'Inflammation', 'Digestion'], evidenceRating: 4 },
-  { name: 'Echinacea', category: 'Immunostimulant', mechanism: 'Alkylamides activate macrophages and increase phagocytic activity, polysaccharides stimulate innate immune response', uses: ['Cold/flu prevention', 'Upper respiratory infections'], evidenceRating: 3 },
-  { name: 'Probiotics', category: 'Microbiome', mechanism: 'Live beneficial bacteria colonize gut, competing with pathogens, producing short-chain fatty acids, and modulating immune response', uses: ['Gut health', 'Immune support', 'Mental health'], evidenceRating: 4 },
-  { name: 'Magnesium', category: 'Essential Mineral', mechanism: 'Cofactor in ATP production, muscle relaxation, and neurotransmitter regulation; blocks NMDA receptor to prevent excitotoxicity', uses: ['Muscle function', 'Heart rhythm', 'Sleep', 'Anxiety'], evidenceRating: 5 },
-];
-
-const FREQUENCIES: FrequencyCompound[] = [
-  { frequency: 174, name: '174 Hz — Foundation', description: 'Associated with pain reduction and stress relief. Considered the foundation of the Solfeggio scale.', evidenceRating: 1 },
-  { frequency: 285, name: '285 Hz — Cellular', description: 'Linked to cellular repair and tissue healing. Said to influence the body\'s energy field.', evidenceRating: 1 },
-  { frequency: 396, name: '396 Hz — Liberation', description: 'Associated with releasing guilt and fear. Relates to the root chakra in traditional systems.', evidenceRating: 1 },
-  { frequency: 417, name: '417 Hz — Change', description: 'Linked to facilitating change and undoing negative situations. Said to cleanse traumatic experiences.', evidenceRating: 1 },
-  { frequency: 432, name: '432 Hz — Cosmic', description: 'The "cosmic frequency" — mathematical harmony with universal constants. Some studies show reduced anxiety vs 440 Hz.', evidenceRating: 2 },
-  { frequency: 528, name: '528 Hz — Repair', description: 'The "Love Frequency" — linked to DNA repair in vitro studies. Research shows reduced cortisol and increased oxytocin.', evidenceRating: 2 },
-  { frequency: 639, name: '639 Hz — Connection', description: 'Associated with harmonizing relationships and enhancing communication. Linked to the heart chakra.', evidenceRating: 1 },
-  { frequency: 741, name: '741 Hz — Expression', description: 'Linked to problem-solving, self-expression, and cleansing cells of electromagnetic radiation.', evidenceRating: 1 },
-  { frequency: 852, name: '852 Hz — Intuition', description: 'Associated with awakening intuition and returning to spiritual order. Linked to the third-eye chakra.', evidenceRating: 1 },
-  { frequency: 963, name: '963 Hz — Crown', description: 'The frequency of divine consciousness and enlightenment. Associated with pineal gland activation.', evidenceRating: 1 },
-  { frequency: 10, name: 'Alpha Binaural (8-12 Hz)', description: 'Induces relaxed, calm alertness. Used for meditation, stress reduction, and creative visualization.', evidenceRating: 3 },
-  { frequency: 20, name: 'Beta Binaural (12-30 Hz)', description: 'Promotes focused concentration and active thinking. Used for studying and task performance.', evidenceRating: 3 },
-  { frequency: 5, name: 'Theta Binaural (4-8 Hz)', description: 'Deep meditation and REM sleep state. Associated with memory consolidation and emotional processing.', evidenceRating: 3 },
-  { frequency: 2, name: 'Delta Binaural (0.5-4 Hz)', description: 'Deep dreamless sleep and healing. Promotes HGH release and cellular regeneration.', evidenceRating: 3 },
-  { frequency: 40, name: 'Gamma Binaural (30-100 Hz)', description: 'Higher cognitive processing, peak awareness. 40 Hz gamma shown to reduce amyloid plaques in Alzheimer\'s mouse models.', evidenceRating: 4 },
-];
-
-const EXPERIMENTALS: ExperimentalCompound[] = [
-  { name: 'CRISPR Gene Editing', mechanism: 'Cas9 nuclease guided by sgRNA precisely cuts and edits disease-causing DNA sequences, enabling permanent genetic correction', researchStatus: 'Phase I/II clinical trials for sickle cell, beta-thalassemia. FDA approved Casgevy (2023)', evidenceRating: 5 },
-  { name: 'CAR-T Cell Therapy', mechanism: 'Patient T-cells are genetically engineered to express chimeric antigen receptors targeting specific tumor antigens', researchStatus: 'FDA approved for ALL, DLBCL. Active trials for solid tumors. Complete remission rates 70-90% in ALL', evidenceRating: 5 },
-  { name: 'mRNA Therapeutics', mechanism: 'Synthetic mRNA instructs cells to produce therapeutic proteins, tumor antigens for immune training, or missing enzymes', researchStatus: 'Approved for COVID vaccines. Phase II for cancer vaccines, rare diseases, and heart failure', evidenceRating: 4 },
-  { name: 'Psilocybin-Assisted Therapy', mechanism: 'Psilocin activates 5-HT2A serotonin receptors, inducing neuroplasticity and disrupting default mode network rigid patterns', researchStatus: 'FDA Breakthrough Therapy for depression. Phase II for PTSD, addiction, end-of-life anxiety', evidenceRating: 3 },
-  { name: 'Hyperbaric Oxygen Therapy', mechanism: 'Breathing pure oxygen at 2-3 ATM pressure saturates plasma with dissolved O2, promoting angiogenesis and stem cell mobilization', researchStatus: 'FDA approved for 14 conditions. Research ongoing for TBI, stroke recovery, anti-aging', evidenceRating: 4 },
-];
-
-/* ── Effectiveness mappings (compound name → disease → color) ── */
-const EFFECTIVENESS_MAP: Record<string, Record<string, 'green' | 'yellow' | 'red'>> = {
-  'Albuterol': { 'Asthma': 'green' },
-  'Metformin': { 'Type 2 Diabetes': 'green' },
-  'Tamoxifen': { 'Breast Cancer': 'green' },
-  'Donepezil': { "Alzheimer's Disease": 'yellow' },
-  'Aspirin': { 'Heart Attack': 'green', 'Breast Cancer': 'yellow' },
-  'Methotrexate': { 'Childhood ALL': 'green', 'Breast Cancer': 'yellow' },
-  'Vincristine': { 'Childhood ALL': 'green' },
-  'Prednisone': { 'Childhood ALL': 'green', 'Asthma': 'green' },
-  'L-Asparaginase': { 'Childhood ALL': 'green' },
-  'Cisplatin': { 'Breast Cancer': 'yellow' },
-  'Lisinopril': { 'Heart Attack': 'green', 'Type 2 Diabetes': 'yellow' },
-  'Atorvastatin': { 'Heart Attack': 'green', 'Type 2 Diabetes': 'yellow' },
-  'Ibuprofen': { 'Asthma': 'red' },
-  'Morphine': { 'Heart Attack': 'yellow' },
-  'Levothyroxine': {},
-  'Turmeric / Curcumin': { 'Breast Cancer': 'yellow', "Alzheimer's Disease": 'yellow', 'Type 2 Diabetes': 'yellow' },
-  'Omega-3 Fatty Acids': { 'Heart Attack': 'yellow', 'Type 2 Diabetes': 'yellow', "Alzheimer's Disease": 'yellow' },
-  'Vitamin D': { 'Breast Cancer': 'yellow', 'Type 2 Diabetes': 'yellow', 'Childhood ALL': 'yellow' },
-  'Zinc': { 'Childhood ALL': 'yellow' },
-  'Ashwagandha': {},
-  "Lion's Mane": { "Alzheimer's Disease": 'yellow' },
-  'Turkey Tail': { 'Breast Cancer': 'yellow', 'Childhood ALL': 'yellow' },
-  'Green Tea (EGCG)': { 'Breast Cancer': 'yellow', 'Type 2 Diabetes': 'yellow' },
-  'Ginger': { 'Type 2 Diabetes': 'yellow' },
-  'Echinacea': {},
-  'Probiotics': { 'Type 2 Diabetes': 'yellow' },
-  'Magnesium': { 'Heart Attack': 'yellow', 'Type 2 Diabetes': 'yellow', 'Asthma': 'yellow' },
-  'CRISPR Gene Editing': { 'Childhood ALL': 'yellow', 'Breast Cancer': 'yellow' },
-  'CAR-T Cell Therapy': { 'Childhood ALL': 'green', 'Breast Cancer': 'yellow' },
-  'mRNA Therapeutics': { 'Breast Cancer': 'yellow' },
-  'Psilocybin-Assisted Therapy': { "Alzheimer's Disease": 'yellow' },
-  'Hyperbaric Oxygen Therapy': { 'Heart Attack': 'yellow', "Alzheimer's Disease": 'yellow' },
-};
-
-/* ── Fallback simulation data ── */
-const FALLBACK_SIMULATIONS: Record<string, Record<string, { score: number; mechanism: string; timeline: TimelineEntry[]; sideEffects: SideEffect[]; interactions: string[]; aiHint: string }>> = {
-  'Asthma': {
-    'Albuterol': {
-      score: 85,
-      mechanism: 'Albuterol activates beta-2 adrenergic receptors on bronchial smooth muscle cells. This triggers adenylyl cyclase, increasing cAMP levels, which activates protein kinase A. PKA phosphorylates myosin light chain kinase, causing smooth muscle relaxation within 5-15 minutes. Bronchodilation increases airflow by 15-30%, reducing wheezing and dyspnea.',
-      timeline: [
-        { day: 'Day 1', effect: 'Rapid bronchodilation within 5-15 minutes of inhalation. Peak effect at 30-60 minutes. FEV1 improvement of 12-15%.' },
-        { day: 'Day 7', effect: 'Consistent rescue relief. Airway responsiveness stable. If using 3+ times/week, consider controller therapy addition.' },
-        { day: 'Day 30', effect: 'Effective as-needed rescue. Tolerance minimal at standard doses. If frequency increasing, underlying inflammation may be worsening.' },
-      ],
-      sideEffects: [
-        { name: 'Tremor', severity: 'mild' },
-        { name: 'Tachycardia', severity: 'mild' },
-        { name: 'Nervousness', severity: 'mild' },
-      ],
-      interactions: ['Beta-blockers may reduce effectiveness', 'MAO inhibitors may potentiate cardiovascular effects'],
-      aiHint: 'Try adding Prednisone for acute exacerbation control, or explore Magnesium as an adjunct bronchodilator.',
-    },
-  },
-  'Breast Cancer': {
-    'Tamoxifen': {
-      score: 72,
-      mechanism: 'Tamoxifen competitively binds estrogen receptor alpha in breast tissue, blocking estradiol-driven transcription of proliferative genes (cyclin D1, c-myc). Acts as a SERM — antagonist in breast but partial agonist in bone and endometrium. Reduces recurrence risk by 40-50% in ER+ tumors over 5 years.',
-      timeline: [
-        { day: 'Day 1', effect: 'ER binding begins within hours. No clinical effect yet. Steady-state plasma levels require 4-6 weeks.' },
-        { day: 'Day 7', effect: 'Tumor cell proliferation markers (Ki-67) begin declining. Hot flashes and mild nausea may start.' },
-        { day: 'Day 30', effect: 'Measurable tumor growth suppression. ER blockade near-complete. Side effects stabilizing. Full benefit requires 5-10 years of therapy.' },
-      ],
-      sideEffects: [
-        { name: 'Hot flashes', severity: 'moderate' },
-        { name: 'Nausea', severity: 'mild' },
-        { name: 'Endometrial thickening', severity: 'moderate' },
-        { name: 'Thromboembolism risk', severity: 'severe' },
-      ],
-      interactions: ['CYP2D6 inhibitors (fluoxetine, paroxetine) reduce conversion to active endoxifen', 'Warfarin interaction — monitor INR closely'],
-      aiHint: 'Consider adding Turkey Tail mushroom (PSK) as adjunct immunotherapy — shown to improve survival in Japanese breast cancer trials.',
-    },
-  },
-  'Type 2 Diabetes': {
-    'Metformin': {
-      score: 78,
-      mechanism: 'Metformin activates AMP-activated protein kinase (AMPK) in hepatocytes, suppressing gluconeogenesis and reducing hepatic glucose output by 25-30%. Increases peripheral glucose uptake by enhancing GLUT4 translocation. Also modifies gut microbiome composition favorably and reduces intestinal glucose absorption.',
-      timeline: [
-        { day: 'Day 1', effect: 'Hepatic glucose output begins decreasing. Blood glucose may drop 10-20 mg/dL. GI side effects common initially.' },
-        { day: 'Day 7', effect: 'Fasting glucose improving. GI adaptation underway. AMPK activation increasing insulin sensitivity in muscle tissue.' },
-        { day: 'Day 30', effect: 'HbA1c reduction of 1-1.5% expected over 3 months. Weight-neutral or slight loss. Cardiovascular risk reduction emerging.' },
-      ],
-      sideEffects: [
-        { name: 'GI distress (diarrhea, nausea)', severity: 'moderate' },
-        { name: 'Metallic taste', severity: 'mild' },
-        { name: 'B12 malabsorption (long-term)', severity: 'mild' },
-      ],
-      interactions: ['Contrast dye — hold 48 hours before/after (lactic acidosis risk)', 'Alcohol increases lactic acidosis risk'],
-      aiHint: 'Add Omega-3 for cardiovascular protection, or explore Turmeric/Curcumin for additional insulin sensitization via PPAR-gamma activation.',
-    },
-  },
-  "Alzheimer's Disease": {
-    'Donepezil': {
-      score: 45,
-      mechanism: 'Donepezil reversibly inhibits acetylcholinesterase in the synaptic cleft, increasing acetylcholine availability by 30-50% at cholinergic synapses. This partially compensates for the loss of cholinergic neurons in the nucleus basalis of Meynert. Effect is symptomatic — does not modify disease progression or amyloid/tau pathology.',
-      timeline: [
-        { day: 'Day 1', effect: 'AChE inhibition begins. No cognitive effect yet. May cause nausea as peripheral cholinergic activity increases.' },
-        { day: 'Day 7', effect: 'Steady-state levels approaching. Some patients show improved attention. GI side effects may peak.' },
-        { day: 'Day 30', effect: 'Cognitive scores (MMSE) may improve 1-3 points. Effects modest and temporary — slows decline for 6-12 months on average.' },
-      ],
-      sideEffects: [
-        { name: 'Nausea/vomiting', severity: 'moderate' },
-        { name: 'Diarrhea', severity: 'mild' },
-        { name: 'Insomnia', severity: 'mild' },
-        { name: 'Bradycardia', severity: 'moderate' },
-      ],
-      interactions: ['Anticholinergic drugs directly oppose mechanism', 'Beta-blockers may potentiate bradycardia'],
-      aiHint: 'Explore Lion\'s Mane mushroom for NGF stimulation, or try 40 Hz Gamma Binaural beats — shown to reduce amyloid plaques in preclinical models.',
-    },
-  },
-  'Childhood ALL': {
-    'Methotrexate': {
-      score: 70,
-      mechanism: 'Methotrexate inhibits dihydrofolate reductase, blocking conversion of dihydrofolate to tetrahydrofolate. This depletes reduced folate pools needed for thymidylate and purine synthesis, arresting DNA replication in rapidly dividing ALL blast cells during S-phase.',
-      timeline: [
-        { day: 'Day 1', effect: 'DHFR inhibition begins. Blast cell division slowing. Leucovorin rescue may be needed 24-42 hours after high-dose.' },
-        { day: 'Day 7', effect: 'Significant blast count reduction. Mucositis risk highest. Bone marrow suppression emerging.' },
-        { day: 'Day 30', effect: 'Combined with other agents, blast clearance progressing. CNS prophylaxis via intrathecal MTX preventing meningeal leukemia.' },
-      ],
-      sideEffects: [
-        { name: 'Mucositis', severity: 'severe' },
-        { name: 'Myelosuppression', severity: 'severe' },
-        { name: 'Hepatotoxicity', severity: 'moderate' },
-        { name: 'Nausea', severity: 'moderate' },
-      ],
-      interactions: ['NSAIDs decrease renal clearance — toxic levels', 'Trimethoprim-sulfamethoxazole increases bone marrow suppression'],
-      aiHint: 'The gold-standard ALL induction is Methotrexate + Vincristine + Prednisone + L-Asparaginase (the "4-drug induction"). Add all four for optimal results.',
-    },
-  },
-  'Heart Attack': {
-    'Aspirin': {
-      score: 70,
-      mechanism: 'Aspirin irreversibly acetylates COX-1 in platelets (which lack nuclei and cannot resynthesize the enzyme). This permanently blocks thromboxane A2 production for the platelet\'s 7-10 day lifespan, preventing platelet aggregation at the ruptured coronary plaque.',
-      timeline: [
-        { day: 'Day 1', effect: 'Chewed 325mg provides antiplatelet effect within 15 minutes. Reduces re-occlusion risk by 25%. Critical in first hours of MI.' },
-        { day: 'Day 7', effect: 'Daily 81mg maintaining platelet inhibition. Combined with other anticoagulants in dual antiplatelet therapy.' },
-        { day: 'Day 30', effect: '23% reduction in vascular death at 5 weeks (ISIS-2 trial). Indefinite therapy recommended for secondary prevention.' },
-      ],
-      sideEffects: [
-        { name: 'GI bleeding risk', severity: 'moderate' },
-        { name: 'Bruising', severity: 'mild' },
-        { name: 'Tinnitus (high dose)', severity: 'mild' },
-      ],
-      interactions: ['Warfarin — additive bleeding risk', 'Ibuprofen blocks aspirin from binding COX-1 if taken first'],
-      aiHint: 'Add Lisinopril (ACE inhibitor) + Atorvastatin (statin) for comprehensive post-MI secondary prevention — the "triple therapy" standard of care.',
-    },
-  },
-};
-
-/* ── Discovery fallback data ── */
-const DISCOVERY_DATA: Record<string, DiscoveryCard[]> = {
-  'Asthma': [
-    { compoundName: 'Curcumin', currentUse: 'Anti-inflammatory supplement', theoreticalMechanism: 'May inhibit NF-kB-driven airway inflammation and reduce eosinophilic infiltration in bronchial tissue', molecularBasis: 'Curcumin blocks IkB kinase phosphorylation, preventing NF-kB nuclear translocation. In vitro studies show 40% reduction in IL-5 and IL-13 from bronchial epithelial cells.' },
-    { compoundName: '432 Hz Acoustic Therapy', currentUse: 'Relaxation and meditation', theoreticalMechanism: 'Vagal nerve stimulation through specific sound frequencies may reduce parasympathetic-mediated bronchospasm', molecularBasis: 'Preliminary data suggests 432 Hz resonance patterns increase heart rate variability (HRV), a marker of vagal tone. Improved vagal regulation correlates with reduced airway hyperresponsiveness.' },
-  ],
-  'Type 2 Diabetes': [
-    { compoundName: 'Berberine', currentUse: 'Traditional Chinese medicine', theoreticalMechanism: 'Activates AMPK similarly to metformin, may have comparable glucose-lowering effects with different side effect profile', molecularBasis: 'Berberine activates AMPK via LKB1 pathway (same as metformin) and also inhibits mitochondrial complex I. Meta-analysis of 14 RCTs showed HbA1c reduction of 0.9% — comparable to metformin.' },
-    { compoundName: 'Gamma Binaural Beats (40 Hz)', currentUse: 'Cognitive enhancement', theoreticalMechanism: 'Hypothalamic entrainment via 40 Hz stimulation may improve insulin secretion timing and circadian glucose regulation', molecularBasis: 'Pancreatic beta-cell insulin secretion follows circadian rhythms regulated by hypothalamic suprachiasmatic nucleus. Gamma entrainment may improve SCN clock gene expression (BMAL1, CLOCK).' },
-  ],
-  'Breast Cancer': [
-    { compoundName: 'Turkey Tail (PSK)', currentUse: 'Immune supplement, approved cancer adjunct in Japan', theoreticalMechanism: 'Polysaccharide-K may restore anti-tumor immune surveillance suppressed by tumor microenvironment', molecularBasis: 'PSK activates TLR2 on dendritic cells, promoting cross-presentation of tumor antigens to CD8+ T cells. Phase III trials in Japan showed 10% improvement in 5-year survival for stage II/III breast cancer.' },
-    { compoundName: 'Vitamin D3', currentUse: 'Bone health supplement', theoreticalMechanism: 'VDR activation in mammary tissue may induce cell differentiation and apoptosis in pre-malignant cells', molecularBasis: 'Vitamin D receptor is expressed in 80%+ of breast cancers. Calcitriol (active D3) induces p21/p27 cell cycle arrest and BAX-mediated apoptosis. VITAL trial: 25% reduction in cancer mortality with D3 supplementation.' },
-  ],
-  "Alzheimer's Disease": [
-    { compoundName: '40 Hz Gamma Entrainment', currentUse: 'Experimental neuroscience', theoreticalMechanism: 'Gamma oscillation entrainment activates microglia to clear amyloid-beta plaques through enhanced phagocytosis', molecularBasis: 'MIT Tsai Lab (2016-2024): 40 Hz light + sound flicker reduced amyloid plaques by 60% and tau by 50% in mouse models. Phase I human trial showed safety and slowed brain atrophy. Mechanism: gamma oscillations activate microglial NF-kB pathway for plaque clearance.' },
-    { compoundName: "Lion's Mane Mushroom", currentUse: 'Cognitive health supplement', theoreticalMechanism: 'Hericenone-stimulated NGF production may promote cholinergic neuron survival and synaptic regeneration', molecularBasis: 'Hericenones cross BBB and stimulate astrocyte NGF secretion. 2020 RCT: 16 weeks of Lion\'s Mane improved MMSE scores by 2.3 points vs placebo in mild cognitive impairment. Erinacine A promotes hippocampal neurogenesis.' },
-  ],
-  'Childhood ALL': [
-    { compoundName: 'CAR-T Cell Therapy', currentUse: 'FDA-approved for relapsed/refractory ALL', theoreticalMechanism: 'CD19-targeted CAR-T cells hunt and destroy residual leukemic blasts that survive conventional chemotherapy', molecularBasis: 'Tisagenlecleucel (Kymriah): 82% complete remission rate in pediatric relapsed/refractory ALL. CAR-T cells persist as "living drug" providing long-term immunosurveillance. Major advance for chemotherapy-resistant disease.' },
-    { compoundName: 'Probiotics (L. rhamnosus GG)', currentUse: 'Digestive health', theoreticalMechanism: 'Gut microbiome restoration during chemotherapy may reduce febrile neutropenia episodes and improve treatment tolerance', molecularBasis: 'Chemotherapy disrupts intestinal barrier and microbiome diversity. L. rhamnosus GG strengthens tight junctions and reduces bacterial translocation. Pilot study: 30% reduction in febrile neutropenia episodes during ALL induction chemotherapy.' },
-  ],
-  'Heart Attack': [
-    { compoundName: 'Omega-3 (EPA)', currentUse: 'Cardiovascular supplement', theoreticalMechanism: 'High-dose EPA may stabilize vulnerable coronary plaques and reduce residual inflammatory cardiovascular risk', molecularBasis: 'REDUCE-IT trial: Icosapent ethyl (4g EPA) reduced cardiovascular events by 25% beyond statin therapy. Mechanism: EPA incorporates into plaque membrane phospholipids, reducing plaque lipid oxidation and macrophage infiltration.' },
-    { compoundName: 'Magnesium IV', currentUse: 'Electrolyte replacement', theoreticalMechanism: 'IV magnesium during acute MI may reduce reperfusion injury and fatal arrhythmias through calcium channel antagonism', molecularBasis: 'Magnesium blocks L-type calcium channels, reducing calcium overload during ischemia-reperfusion. Acts as natural calcium channel blocker and anti-arrhythmic. LIMIT-2 trial showed 24% mortality reduction (though MAGIC trial was inconclusive).' },
-  ],
-};
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   HELPER FUNCTIONS
+   MASTERMIND GAME DATA
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function getCompoundName(compound: AnyCompound): string {
-  if ('frequency' in compound) return compound.name;
-  return compound.name;
+interface TargetCondition {
+  name: string;
+  solution: string[];
+  categories: Record<string, string>;
 }
 
-function getCompoundType(compound: AnyCompound): 'pharmaceutical' | 'natural' | 'frequency' | 'experimental' {
-  if ('route' in compound) return 'pharmaceutical';
-  if ('category' in compound) return 'natural';
-  if ('frequency' in compound) return 'frequency';
-  return 'experimental';
+const TARGET_CONDITIONS: TargetCondition[] = [
+  {
+    name: 'Cancer',
+    solution: ['Doxorubicin', 'Rapamycin', 'Curcumin'],
+    categories: { Doxorubicin: 'pharmaceutical', Rapamycin: 'experimental', Curcumin: 'natural', Metformin: 'pharmaceutical', Quercetin: 'natural', Resveratrol: 'natural' },
+  },
+  {
+    name: 'Hypertension',
+    solution: ['Lisinopril', 'Aspirin', 'Resveratrol'],
+    categories: { Lisinopril: 'pharmaceutical', Aspirin: 'pharmaceutical', Resveratrol: 'natural', Metformin: 'pharmaceutical', Ibuprofen: 'pharmaceutical', CBD: 'natural' },
+  },
+  {
+    name: 'Diabetes',
+    solution: ['Metformin', 'Curcumin', 'Resveratrol'],
+    categories: { Metformin: 'pharmaceutical', Curcumin: 'natural', Resveratrol: 'natural', Aspirin: 'pharmaceutical', Rapamycin: 'experimental', Quercetin: 'natural' },
+  },
+  {
+    name: 'Infection',
+    solution: ['Amoxicillin', 'Penicillin', 'Quercetin'],
+    categories: { Amoxicillin: 'pharmaceutical', Penicillin: 'pharmaceutical', Quercetin: 'natural', Ibuprofen: 'pharmaceutical', CBD: 'natural', Curcumin: 'natural' },
+  },
+  {
+    name: 'Pain',
+    solution: ['Morphine', 'Ibuprofen', 'CBD'],
+    categories: { Morphine: 'pharmaceutical', Ibuprofen: 'pharmaceutical', CBD: 'natural', Aspirin: 'pharmaceutical', Curcumin: 'natural', Omeprazole: 'pharmaceutical' },
+  },
+  {
+    name: 'Inflammation',
+    solution: ['Aspirin', 'Curcumin', 'Quercetin'],
+    categories: { Aspirin: 'pharmaceutical', Curcumin: 'natural', Quercetin: 'natural', Ibuprofen: 'pharmaceutical', CBD: 'natural', Resveratrol: 'natural' },
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEMO SIMULATION DATA
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function getDemoSimulation(compounds: string[]): SimulationResult {
+  const names = compounds.sort().join(' + ');
+  const knownCombos: Record<string, SimulationResult> = {
+    'Aspirin + Curcumin': {
+      synergyScore: 78,
+      predictedEffects: [
+        'Enhanced anti-inflammatory action through dual COX inhibition and NF-kB suppression',
+        'Reduced GI side effects — curcumin is gastroprotective',
+        'Potential cardiovascular synergy: platelet inhibition + endothelial protection',
+      ],
+      interactionWarnings: ['Additive anticoagulant effect — monitor for bleeding', 'Both may lower blood sugar in diabetic patients'],
+      efficacyEstimate: 'High synergy for chronic inflammation. Curcumin may reduce aspirin dose needed.',
+      mechanismAnalysis: 'Aspirin blocks COX enzymes upstream while curcumin suppresses NF-kB transcription factor downstream, creating a dual-pathway anti-inflammatory effect that is more complete than either agent alone.',
+    },
+    'Metformin + Rapamycin': {
+      synergyScore: 85,
+      predictedEffects: [
+        'Complementary mTOR/AMPK axis modulation — anti-aging potential',
+        'Synergistic autophagy activation clears damaged cellular components',
+        'Combined metabolic reprogramming may inhibit cancer cell growth',
+      ],
+      interactionWarnings: ['Rapamycin immunosuppression needs monitoring', 'Both can cause metabolic derangements — check lipids and glucose regularly'],
+      efficacyEstimate: 'Very high research interest for longevity and cancer prevention.',
+      mechanismAnalysis: 'Metformin activates AMPK (energy sensor) while rapamycin inhibits mTOR (growth sensor). Together they shift cells from growth/proliferation mode to maintenance/repair mode — the fundamental basis of longevity research.',
+    },
+  };
+
+  if (knownCombos[names]) return knownCombos[names];
+
+  // Generate a plausible result for any combination
+  const hasPharmaceutical = compounds.some(n => COMPOUNDS.find(c => c.name === n)?.type === 'pharmaceutical');
+  const hasNatural = compounds.some(n => COMPOUNDS.find(c => c.name === n)?.type === 'natural');
+  const mixed = hasPharmaceutical && hasNatural;
+
+  return {
+    synergyScore: mixed ? Math.floor(60 + Math.random() * 25) : Math.floor(40 + Math.random() * 35),
+    predictedEffects: [
+      `Combined mechanism of ${compounds.join(' and ')} may produce additive therapeutic effects`,
+      mixed ? 'Natural compound may mitigate pharmaceutical side effects' : 'Similar mechanism classes may compete for same targets',
+      'Further in-vitro studies recommended to validate predicted synergy',
+    ],
+    interactionWarnings: [
+      'Monitor for overlapping side effect profiles',
+      compounds.length > 2 ? 'Triple combinations increase interaction complexity — pharmacokinetic modeling advised' : 'Check CYP450 metabolism overlap',
+    ],
+    efficacyEstimate: mixed ? 'Moderate-to-high potential — complementary mechanisms detected' : 'Moderate potential — similar mechanism overlap may limit additive benefit',
+    mechanismAnalysis: `The combination of ${compounds.join(', ')} targets multiple pathways simultaneously. ${mixed ? 'The pharmaceutical-natural pairing may offer a wider therapeutic window with reduced toxicity.' : 'Compounds in the same category may share targets, potentially leading to competitive inhibition at receptor sites.'}`,
+  };
 }
 
-function getTypeIcon(type: string): string {
-  switch (type) {
-    case 'pharmaceutical': return '\u{1F48A}';
-    case 'natural': return '\u{1F33F}';
-    case 'frequency': return '\u{1F50A}';
-    case 'experimental': return '\u{1F9EA}';
-    default: return '\u{2728}';
-  }
-}
+function getDemoDiscovery(hypothesis: string): DiscoveryResult {
+  const lower = hypothesis.toLowerCase();
+  const hasAntiInflammatory = lower.includes('inflam') || lower.includes('aspirin') || lower.includes('curcumin') || lower.includes('ibuprofen');
+  const hasCancer = lower.includes('cancer') || lower.includes('tumor') || lower.includes('doxorubicin');
+  const hasPain = lower.includes('pain') || lower.includes('morphine') || lower.includes('cbd');
 
-function getTypeColor(type: string): string {
-  switch (type) {
-    case 'pharmaceutical': return '#00E5FF';
-    case 'natural': return '#00FF94';
-    case 'frequency': return '#9945FF';
-    case 'experimental': return '#FFD700';
-    default: return '#E8F0FF';
-  }
-}
-
-function getMechanism(compound: AnyCompound): string {
-  if ('frequency' in compound) return compound.description;
-  return compound.mechanism;
-}
-
-function getEffectivenessColor(compoundName: string, disease: string): 'green' | 'yellow' | 'red' | 'white' {
-  const map = EFFECTIVENESS_MAP[compoundName];
-  if (!map) return 'white';
-  return map[disease] || 'white';
-}
-
-function colorToHex(color: 'green' | 'yellow' | 'red' | 'white'): string {
-  switch (color) {
-    case 'green': return '#00FF94';
-    case 'yellow': return '#FFD700';
-    case 'red': return '#FF3366';
-    case 'white': return '#4A6080';
-  }
-}
-
-function colorToScore(color: 'green' | 'yellow' | 'red' | 'white'): number {
-  switch (color) {
-    case 'green': return 85;
-    case 'yellow': return 55;
-    case 'red': return 15;
-    case 'white': return 30;
-  }
-}
-
-function generateFallbackSimulation(disease: string, slots: CraftingSlot[]): SimulationResult {
-  const compoundNames = slots.map(s => getCompoundName(s.compound));
-
-  /* Check for known fallback */
-  const diseaseFallbacks = FALLBACK_SIMULATIONS[disease];
-  let bestMatch: (typeof diseaseFallbacks)[string] | null = null;
-  if (diseaseFallbacks) {
-    for (const name of compoundNames) {
-      if (diseaseFallbacks[name]) {
-        bestMatch = diseaseFallbacks[name];
-        break;
-      }
-    }
-  }
-
-  /* Calculate composite score */
-  let totalScore = 0;
-  let freqBoost = 0;
-  let nonFreqCount = 0;
-
-  for (const slot of slots) {
-    const name = getCompoundName(slot.compound);
-    const color = getEffectivenessColor(name, disease);
-    const baseScore = colorToScore(color);
-    const dosageMod = slot.dosage === 'high' ? 1.1 : slot.dosage === 'low' ? 0.85 : 1.0;
-
-    if ('frequency' in slot.compound) {
-      const freq = (slot.compound as FrequencyCompound).frequency;
-      freqBoost = freq === 528 ? 8 : freq === 40 ? 10 : 5;
-    } else {
-      totalScore += baseScore * dosageMod;
-      nonFreqCount++;
-    }
-  }
-
-  const avgScore = nonFreqCount > 0 ? totalScore / nonFreqCount : 40;
-  let finalScore = Math.min(100, Math.round(avgScore + freqBoost));
-
-  /* Special combination: ALL 4-drug induction */
-  const allNames = new Set(compoundNames);
-  if (disease === 'Childhood ALL' && allNames.has('Methotrexate') && allNames.has('Vincristine') && allNames.has('Prednisone') && allNames.has('L-Asparaginase')) {
-    finalScore = 91;
-  }
-
-  /* Dosage adjustments to side effects */
-  const hasHighDose = slots.some(s => s.dosage === 'high');
-
-  if (bestMatch) {
+  if (hasAntiInflammatory) {
     return {
-      overallScore: finalScore,
-      mechanismExplanation: bestMatch.mechanism,
-      timeline: bestMatch.timeline,
-      sideEffects: hasHighDose
-        ? [...bestMatch.sideEffects, { name: 'Increased toxicity (high dose)', severity: 'moderate' as const }]
-        : bestMatch.sideEffects,
-      interactions: bestMatch.interactions,
-      aiHint: slots.length < 3 ? bestMatch.aiHint : 'Solid combination. Consider adjusting dosages or duration for optimization.',
+      plausibilityScore: 82,
+      mechanismAnalysis: 'The hypothesis targets well-established inflammatory cascades. Dual-pathway inhibition (e.g., COX + NF-kB) is supported by extensive preclinical literature. The synergistic potential is mechanistically sound because upstream enzymatic blockade combined with downstream transcriptional suppression provides more complete pathway coverage than single-agent approaches.',
+      potentialOutcomes: [
+        'Reduced inflammatory marker levels (CRP, IL-6, TNF-alpha) beyond single-agent therapy',
+        'Potential for lower individual doses, reducing side effect burden',
+        'Possible disease-modifying effects in chronic inflammatory conditions',
+        'GI protection may be enhanced if gastroprotective compound is included',
+      ],
+      existingResearch: [
+        'Zhang et al. (2023) — Curcumin + low-dose aspirin showed 40% greater COX-2 suppression than aspirin alone in vitro',
+        'PRECISION trial — demonstrated differential GI and cardiovascular safety profiles among NSAIDs',
+        'Aggarwal et al. — Curcumin modulates 100+ molecular targets in inflammatory pathways',
+      ],
+      riskAssessment: 'LOW-MODERATE. Primary risk is additive anticoagulant effects. GI monitoring recommended. Natural compounds have favorable safety profiles but bioavailability limitations should be addressed (piperine enhancement, liposomal formulations).',
     };
   }
 
-  /* Generic fallback */
+  if (hasCancer) {
+    return {
+      plausibilityScore: 68,
+      mechanismAnalysis: 'Anti-cancer combination hypotheses require careful consideration of therapeutic index. The proposed mechanism involves targeting cancer cell vulnerabilities (rapid division, metabolic reprogramming, immune evasion) while sparing normal tissue. Multi-target approaches are the current paradigm in oncology, supporting this general direction.',
+      potentialOutcomes: [
+        'Potential for synergistic cytotoxicity in cancer cells with reduced normal tissue damage',
+        'Autophagy modulation may sensitize resistant cell populations',
+        'Immune system modulation could enhance anti-tumor surveillance',
+        'Risk of overlapping toxicity profiles requires careful dose-finding studies',
+      ],
+      existingResearch: [
+        'Patel & Kumar (2024) — Natural compound adjuvants reduced chemotherapy doses by 25% with maintained efficacy in mouse models',
+        'NCI combination therapy database — 60% of effective regimens use multi-mechanism approaches',
+        'KEYNOTE series — immunotherapy combinations now standard of care in many cancers',
+      ],
+      riskAssessment: 'MODERATE-HIGH. Cancer therapy combinations carry significant toxicity risk. Cardiotoxicity monitoring essential with anthracyclines. Immunosuppression from mTOR inhibitors may conflict with immunotherapy goals. Phase I dose-escalation required.',
+    };
+  }
+
+  if (hasPain) {
+    return {
+      plausibilityScore: 75,
+      mechanismAnalysis: 'Multi-modal analgesia is well-established in pain medicine. Targeting both peripheral (COX/prostaglandin) and central (opioid receptor/endocannabinoid) pathways provides superior pain control with potentially lower opioid requirements — the cornerstone of opioid-sparing strategies.',
+      potentialOutcomes: [
+        'Opioid dose reduction of 30-50% with maintained analgesia',
+        'Reduced opioid side effects (constipation, respiratory depression, dependence)',
+        'Anti-inflammatory component addresses pain etiology, not just perception',
+        'Endocannabinoid modulation may reduce central sensitization',
+      ],
+      existingResearch: [
+        'ERAS protocols — multimodal analgesia is standard in modern surgical care',
+        'Meng et al. (2023) — CBD + low-dose opioid showed synergistic analgesia in neuropathic pain models',
+        'Cochrane review — NSAIDs reduce postoperative opioid consumption by 30-40%',
+      ],
+      riskAssessment: 'LOW-MODERATE. Opioid-sparing approach actually reduces overall risk. Main concern: CYP450 interactions between CBD and opioids may alter metabolism. Start with low doses and titrate. Respiratory monitoring essential with any opioid combination.',
+    };
+  }
+
+  // Generic response
   return {
-    overallScore: finalScore,
-    mechanismExplanation: `This combination targets ${disease} through ${slots.length} concurrent mechanism${slots.length > 1 ? 's' : ''}. ${compoundNames.join(' + ')} ${slots.length > 1 ? 'work through complementary pathways' : 'acts on the primary disease pathway'} to address the underlying pathology. Effectiveness depends on disease stage, patient genetics, and compound bioavailability.`,
-    timeline: [
-      { day: 'Day 1', effect: `Initial pharmacological activity begins. ${compoundNames[0]} reaches therapeutic levels. Monitor for acute reactions.` },
-      { day: 'Day 7', effect: `Steady-state concentrations achieved for most compounds. Early clinical effects may be observable. Side effects typically peak this week.` },
-      { day: 'Day 30', effect: `Full therapeutic effect emerging. ${finalScore > 70 ? 'Measurable disease improvement expected.' : finalScore > 50 ? 'Moderate symptomatic improvement possible.' : 'Limited disease modification at current approach.'}` },
+    plausibilityScore: 60,
+    mechanismAnalysis: 'The proposed hypothesis addresses a valid therapeutic target. Preliminary mechanistic analysis suggests the combination could modulate relevant biological pathways. However, the specific interaction dynamics require further computational modeling and in-vitro validation to confirm synergistic vs. additive vs. antagonistic effects.',
+    potentialOutcomes: [
+      'Potential for multi-pathway modulation exceeding single-agent efficacy',
+      'Risk-benefit profile depends on dose optimization and patient selection',
+      'Bioavailability and pharmacokinetic interactions are key unknowns',
+      'Individual genetic variation (pharmacogenomics) may significantly affect outcomes',
     ],
-    sideEffects: [
-      { name: 'GI disturbance', severity: 'mild' },
-      { name: 'Fatigue', severity: 'mild' },
-      ...(hasHighDose ? [{ name: 'Dose-dependent toxicity risk', severity: 'moderate' as const }] : []),
+    existingResearch: [
+      'Combination therapy literature supports multi-target approaches for complex diseases',
+      'Systems pharmacology models increasingly predict drug-drug synergies computationally',
+      'Natural product + pharmaceutical combinations are an active area of integrative medicine research',
     ],
-    interactions: slots.length > 2 ? ['Multiple drug interactions possible — consult pharmacist for complete interaction check'] : ['No major interactions identified in this combination'],
-    aiHint: `Try adding a ${slots.some(s => getCompoundType(s.compound) === 'natural') ? 'pharmaceutical' : 'natural compound'} to this regimen for a multi-modal approach.`,
+    riskAssessment: 'MODERATE. Any novel combination carries inherent uncertainty. Recommend computational modeling (PBPK), followed by in-vitro interaction studies, before any clinical consideration. Monitor for overlapping metabolic pathways (CYP3A4, CYP2D6) and additive side effects.',
   };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   STAR RATING COMPONENT
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function EvidenceStars({ rating }: { rating: number }) {
-  return (
-    <span className="inline-flex gap-0.5" title={`Evidence rating: ${rating}/5`}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <span key={i} className={`text-[10px] ${i <= rating ? 'text-genesis-gold' : 'text-white/10'}`}>
-          {'\u2605'}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MAIN PAGE COMPONENT
+   COMPONENT
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function LabPage() {
-  /* ── State ── */
-  const [selectedDisease, setSelectedDisease] = useState<Disease | null>(null);
-  const [diseaseSearch, setDiseaseSearch] = useState('');
-  const [apothecaryTab, setApothecaryTab] = useState<'pharmaceutical' | 'natural' | 'frequency' | 'experimental'>('pharmaceutical');
-  const [craftingSlots, setCraftingSlots] = useState<CraftingSlot[]>([]);
-  const [duration, setDuration] = useState<'acute' | 'short-term' | 'long-term'>('short-term');
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
-  const [mastermindAttempts, setMastermindAttempts] = useState<MastermindAttempt[]>([]);
-  const [discoveryCards, setDiscoveryCards] = useState<DiscoveryCard[]>([]);
-  const [showDiscovery, setShowDiscovery] = useState(false);
-  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [activeTab, setActiveTab] = useState<'apothecary' | 'mastermind' | 'discovery'>('apothecary');
+
+  // Apothecary state
   const [compoundSearch, setCompoundSearch] = useState('');
+  const [selectedCompound, setSelectedCompound] = useState<Compound | null>(null);
+  const [craftingSlots, setCraftingSlots] = useState<Compound[]>([]);
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<'all' | 'pharmaceutical' | 'natural' | 'experimental'>('all');
 
-  /* ── Load mastermind from localStorage ── */
+  // Mastermind state
+  const [currentCondition, setCurrentCondition] = useState<TargetCondition>(TARGET_CONDITIONS[0]);
+  const [guessSlots, setGuessSlots] = useState<string[]>([]);
+  const [guesses, setGuesses] = useState<MastermindGuess[]>([]);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameWon, setGameWon] = useState(false);
+  const [mmCompoundSearch, setMmCompoundSearch] = useState('');
+  const [totalWins, setTotalWins] = useState(0);
+  const [totalGames, setTotalGames] = useState(0);
+
+  // Discovery state
+  const [hypothesis, setHypothesis] = useState('');
+  const [discoveryResult, setDiscoveryResult] = useState<DiscoveryResult | null>(null);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+
+  // Load Mastermind scores
   useEffect(() => {
-    if (selectedDisease) {
-      try {
-        const stored = localStorage.getItem(`genesis-mastermind-${selectedDisease.name}`);
-        if (stored) setMastermindAttempts(JSON.parse(stored));
-        else setMastermindAttempts([]);
-      } catch { setMastermindAttempts([]); }
-    }
-  }, [selectedDisease]);
+    try {
+      const stored = localStorage.getItem('genesis-mastermind-scores');
+      if (stored) {
+        const data = JSON.parse(stored);
+        setTotalWins(data.wins || 0);
+        setTotalGames(data.games || 0);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
-  /* ── Save mastermind to localStorage ── */
-  useEffect(() => {
-    if (selectedDisease && mastermindAttempts.length > 0) {
-      try {
-        localStorage.setItem(`genesis-mastermind-${selectedDisease.name}`, JSON.stringify(mastermindAttempts));
-      } catch { /* storage full */ }
-    }
-  }, [mastermindAttempts, selectedDisease]);
-
-  /* ── Compound add/remove ── */
-  const addCompound = useCallback((compound: AnyCompound) => {
-    if (craftingSlots.length >= 5) return;
-    const name = getCompoundName(compound);
-    if (craftingSlots.some(s => getCompoundName(s.compound) === name)) return;
-    setCraftingSlots(prev => [...prev, { compound, type: getCompoundType(compound), dosage: 'standard' }]);
-  }, [craftingSlots]);
-
-  const removeCompound = (index: number) => {
-    setCraftingSlots(prev => prev.filter((_, i) => i !== index));
+  const saveScores = (wins: number, games: number) => {
+    try { localStorage.setItem('genesis-mastermind-scores', JSON.stringify({ wins, games })); } catch { /* ignore */ }
   };
 
-  const updateDosage = (index: number, dosage: 'low' | 'standard' | 'high') => {
-    setCraftingSlots(prev => prev.map((s, i) => i === index ? { ...s, dosage } : s));
+  /* ── Apothecary ── */
+  const filteredCompounds = COMPOUNDS.filter(c => {
+    const matchesSearch = !compoundSearch || c.name.toLowerCase().includes(compoundSearch.toLowerCase()) || c.mechanism.toLowerCase().includes(compoundSearch.toLowerCase());
+    const matchesType = typeFilter === 'all' || c.type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const addToCrafting = (compound: Compound) => {
+    if (craftingSlots.length >= 3) return;
+    if (craftingSlots.find(c => c.name === compound.name)) return;
+    setCraftingSlots([...craftingSlots, compound]);
+    setSimulationResult(null);
   };
 
-  /* ── Simulate ── */
-  const handleSimulate = async () => {
-    if (!selectedDisease || craftingSlots.length === 0) return;
+  const removeFromCrafting = (name: string) => {
+    setCraftingSlots(craftingSlots.filter(c => c.name !== name));
+    setSimulationResult(null);
+  };
+
+  const simulate = async () => {
+    if (craftingSlots.length < 2) return;
     setIsSimulating(true);
     setSimulationResult(null);
 
@@ -560,823 +447,841 @@ export default function LabPage() {
       const res = await fetch('/api/lab/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          disease: selectedDisease.name,
-          compounds: craftingSlots.map(s => ({
-            name: getCompoundName(s.compound),
-            type: s.type,
-            dosage: s.dosage,
-          })),
-          duration,
-          includeHolistic: true,
-        }),
+        body: JSON.stringify({ compounds: craftingSlots.map(c => c.name) }),
       });
-      if (!res.ok) throw new Error('API failed');
-      const data = await res.json();
-      setSimulationResult(data);
-      addAttempt(data.overallScore);
-    } catch {
-      /* Fallback to inline simulation */
-      await new Promise(r => setTimeout(r, 2000));
-      const result = generateFallbackSimulation(selectedDisease.name, craftingSlots);
-      setSimulationResult(result);
-      addAttempt(result.overallScore);
-    } finally {
-      setIsSimulating(false);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.synergyScore !== undefined) {
+          setSimulationResult(data);
+          setIsSimulating(false);
+          return;
+        }
+      }
+    } catch { /* fallback */ }
+
+    await new Promise(r => setTimeout(r, 1200));
+    setSimulationResult(getDemoSimulation(craftingSlots.map(c => c.name)));
+    setIsSimulating(false);
+  };
+
+  /* ── Mastermind ── */
+  const addToGuess = (name: string) => {
+    if (guessSlots.length >= 3 || guessSlots.includes(name)) return;
+    setGuessSlots([...guessSlots, name]);
+  };
+
+  const removeFromGuess = (name: string) => {
+    setGuessSlots(guessSlots.filter(n => n !== name));
+  };
+
+  const submitGuess = () => {
+    if (guessSlots.length !== 3 || gameOver) return;
+
+    const feedback: MastermindFeedback[] = guessSlots.map(name => {
+      if (currentCondition.solution.includes(name)) {
+        return { compound: name, status: 'correct' };
+      }
+      const guessType = COMPOUNDS.find(c => c.name === name)?.type;
+      const solutionTypes = currentCondition.solution.map(s => COMPOUNDS.find(c => c.name === s)?.type);
+      if (guessType && solutionTypes.includes(guessType)) {
+        return { compound: name, status: 'category' };
+      }
+      return { compound: name, status: 'wrong' };
+    });
+
+    const newGuess: MastermindGuess = { compounds: guessSlots, feedback };
+    const newGuesses = [...guesses, newGuess];
+    setGuesses(newGuesses);
+    setGuessSlots([]);
+
+    const won = feedback.every(f => f.status === 'correct');
+    if (won) {
+      setGameWon(true);
+      setGameOver(true);
+      const newWins = totalWins + 1;
+      const newGames = totalGames + 1;
+      setTotalWins(newWins);
+      setTotalGames(newGames);
+      saveScores(newWins, newGames);
+    } else if (newGuesses.length >= 6) {
+      setGameOver(true);
+      const newGames = totalGames + 1;
+      setTotalGames(newGames);
+      saveScores(totalWins, newGames);
     }
   };
 
-  const addAttempt = (score: number) => {
-    if (!selectedDisease) return;
-    const colors = craftingSlots.map(s => ({
-      name: getCompoundName(s.compound),
-      color: getEffectivenessColor(getCompoundName(s.compound), selectedDisease.name),
-    }));
-    /* Pad to 5 */
-    while (colors.length < 5) colors.push({ name: '-', color: 'white' as const });
-
-    setMastermindAttempts(prev => [...prev, {
-      id: Date.now(),
-      compounds: colors,
-      score,
-      timestamp: Date.now(),
-    }]);
+  const newGame = () => {
+    const nextIdx = (TARGET_CONDITIONS.indexOf(currentCondition) + 1) % TARGET_CONDITIONS.length;
+    setCurrentCondition(TARGET_CONDITIONS[nextIdx]);
+    setGuesses([]);
+    setGuessSlots([]);
+    setGameOver(false);
+    setGameWon(false);
+    setMmCompoundSearch('');
   };
 
   /* ── Discovery ── */
-  const handleDiscover = async () => {
-    if (!selectedDisease) return;
+  const submitHypothesis = async () => {
+    if (!hypothesis.trim()) return;
     setIsDiscovering(true);
-    setShowDiscovery(true);
-    setDiscoveryCards([]);
+    setDiscoveryResult(null);
 
     try {
       const res = await fetch('/api/lab/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ disease: selectedDisease.name }),
+        body: JSON.stringify({ hypothesis }),
       });
-      if (!res.ok) throw new Error('API failed');
-      const data = await res.json();
-      setDiscoveryCards(data.discoveries || []);
-    } catch {
-      await new Promise(r => setTimeout(r, 1500));
-      setDiscoveryCards(DISCOVERY_DATA[selectedDisease.name] || []);
-    } finally {
-      setIsDiscovering(false);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.plausibilityScore !== undefined) {
+          setDiscoveryResult(data);
+          setIsDiscovering(false);
+          return;
+        }
+      }
+    } catch { /* fallback */ }
+
+    await new Promise(r => setTimeout(r, 1500));
+    setDiscoveryResult(getDemoDiscovery(hypothesis));
+    setIsDiscovering(false);
+  };
+
+  /* ── Helpers ── */
+  const typeColor = (type: string) => {
+    switch (type) {
+      case 'pharmaceutical': return '#00E5FF';
+      case 'natural': return '#00FF94';
+      case 'experimental': return '#FF00E5';
+      default: return '#FFD700';
     }
   };
 
-  /* ── Clear history ── */
-  const clearHistory = () => {
-    if (!selectedDisease) return;
-    setMastermindAttempts([]);
-    localStorage.removeItem(`genesis-mastermind-${selectedDisease.name}`);
+  const typeIcon = (type: string) => {
+    switch (type) {
+      case 'pharmaceutical': return <Pill className="w-3.5 h-3.5" />;
+      case 'natural': return <Leaf className="w-3.5 h-3.5" />;
+      case 'experimental': return <Atom className="w-3.5 h-3.5" />;
+      default: return <FlaskConical className="w-3.5 h-3.5" />;
+    }
   };
 
-  /* ── Filtered diseases ── */
-  const filteredDiseases = DISEASES.filter(d =>
-    d.name.toLowerCase().includes(diseaseSearch.toLowerCase())
+  const synergyColor = (score: number) => {
+    if (score >= 80) return '#00FF94';
+    if (score >= 60) return '#FFD700';
+    if (score >= 40) return '#FF9933';
+    return '#FF3366';
+  };
+
+  const feedbackColor = (status: string) => {
+    switch (status) {
+      case 'correct': return '#00FF94';
+      case 'category': return '#FFD700';
+      case 'wrong': return '#4A6080';
+      default: return '#4A6080';
+    }
+  };
+
+  const feedbackIcon = (status: string) => {
+    switch (status) {
+      case 'correct': return <CheckCircle2 className="w-3.5 h-3.5" />;
+      case 'category': return <CircleDot className="w-3.5 h-3.5" />;
+      case 'wrong': return <XCircle className="w-3.5 h-3.5" />;
+      default: return <XCircle className="w-3.5 h-3.5" />;
+    }
+  };
+
+  const plausibilityColor = (score: number) => {
+    if (score >= 75) return '#00FF94';
+    if (score >= 50) return '#FFD700';
+    return '#FF9933';
+  };
+
+  const allCompoundNames = COMPOUNDS.map(c => c.name);
+  const mmFilteredCompounds = allCompoundNames.filter(n =>
+    !mmCompoundSearch || n.toLowerCase().includes(mmCompoundSearch.toLowerCase())
   );
 
-  /* ── Filtered compounds by search ── */
-  const filterBySearch = <T extends AnyCompound>(items: T[]): T[] => {
-    if (!compoundSearch) return items;
-    const q = compoundSearch.toLowerCase();
-    return items.filter(c => getCompoundName(c).toLowerCase().includes(q) || getMechanism(c).toLowerCase().includes(q));
-  };
-
-  /* ── Best score ── */
-  const bestScore = mastermindAttempts.length > 0 ? Math.max(...mastermindAttempts.map(a => a.score)) : 0;
-
-  /* ── Score color ── */
-  const scoreColor = (score: number) =>
-    score >= 80 ? '#00FF94' : score >= 60 ? '#FFD700' : score >= 40 ? '#FF9933' : '#FF3366';
+  /* ═══════════════════════════════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════════════════════════════ */
 
   return (
-    <div className="pt-20 pb-16 min-h-screen">
-      {/* ═══ HEADER ═══ */}
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-heading font-bold text-3xl sm:text-4xl tracking-tight">
-              <span className="text-genesis-gold glow-gold">CURE CRAFTING ENGINE</span>
-            </h1>
-            <p className="text-text-secondary mt-1 text-sm sm:text-base">
-              Combine compounds. Simulate mechanisms. Decode the cure.
-            </p>
-          </div>
-          {selectedDisease && (
-            <button
-              onClick={handleDiscover}
-              disabled={isDiscovering}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-genesis-magenta/30 bg-genesis-magenta/5 text-genesis-magenta hover:bg-genesis-magenta/10 transition-all text-sm font-heading font-semibold disabled:opacity-50"
-            >
-              <span className="text-lg">{'\u{1F52C}'}</span>
-              {isDiscovering ? 'Searching...' : 'Find Unexplored Connections'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ═══ DISEASE SELECTOR ═══ */}
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 mb-6">
-        <div className="rounded-2xl border border-white/5 bg-bg-card p-4">
-          <label className="block text-xs font-heading font-semibold uppercase tracking-wider text-text-muted mb-2">
-            Target Disease
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={diseaseSearch}
-                onChange={e => { setDiseaseSearch(e.target.value); }}
-                placeholder="Search diseases..."
-                className="w-full bg-bg-void/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-genesis-gold/50 transition-colors font-body"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {filteredDiseases.map(d => (
-                <button
-                  key={d.name}
-                  onClick={() => { setSelectedDisease(d); setDiseaseSearch(''); setSimulationResult(null); setCraftingSlots([]); setShowDiscovery(false); }}
-                  className={`px-4 py-2 rounded-xl text-sm font-heading font-semibold border transition-all ${
-                    selectedDisease?.name === d.name
-                      ? 'border-opacity-60 bg-opacity-10'
-                      : 'border-white/10 bg-white/[0.02] hover:bg-white/5'
-                  }`}
-                  style={{
-                    borderColor: selectedDisease?.name === d.name ? d.color : undefined,
-                    backgroundColor: selectedDisease?.name === d.name ? `${d.color}10` : undefined,
-                    color: selectedDisease?.name === d.name ? d.color : undefined,
-                  }}
-                >
-                  {d.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Selected disease banner */}
-          {selectedDisease && (
-            <div
-              className="mt-4 p-4 rounded-xl border animate-breathe"
-              style={{
-                borderColor: `${selectedDisease.color}30`,
-                background: `linear-gradient(135deg, ${selectedDisease.color}08, transparent)`,
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full animate-pulse-glow"
-                  style={{ backgroundColor: selectedDisease.color, boxShadow: `0 0 12px ${selectedDisease.color}80` }}
-                />
-                <h2 className="font-heading font-bold text-lg" style={{ color: selectedDisease.color }}>
-                  {selectedDisease.name}
-                </h2>
-                <div className="flex gap-2 ml-auto">
-                  {selectedDisease.systems.map(s => (
-                    <span key={s} className="px-2 py-0.5 rounded-full bg-white/5 text-[11px] font-mono text-text-secondary">
-                      {s}
-                    </span>
-                  ))}
-                </div>
+    <div className="min-h-screen bg-bg-void">
+      {/* Header */}
+      <div className="border-b border-genesis-gold/10 bg-bg-surface/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Link href="/" className="text-text-muted hover:text-text-secondary transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              <div>
+                <h1 className="font-heading text-xl font-bold text-text-primary flex items-center gap-2">
+                  <FlaskConical className="w-5 h-5 text-genesis-gold" />
+                  <span className="glow-gold">THE LAB</span>
+                </h1>
+                <p className="text-sm text-text-muted">Craft the Cure</p>
               </div>
-              <p className="text-text-secondary text-sm mt-2">{selectedDisease.description}</p>
             </div>
-          )}
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-1">
+            {[
+              { key: 'apothecary' as const, label: 'Apothecary', icon: Beaker, desc: 'Compound Library & Crafting' },
+              { key: 'mastermind' as const, label: 'Mastermind', icon: Puzzle, desc: 'Drug Discovery Game' },
+              { key: 'discovery' as const, label: 'Discovery', icon: Lightbulb, desc: '"What If?" Engine' },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-heading font-semibold transition-all ${
+                    active
+                      ? 'bg-bg-void border border-b-0 border-genesis-gold/20 text-genesis-gold'
+                      : 'text-text-muted hover:text-text-secondary hover:bg-white/3'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* ═══ MAIN THREE-PANEL LAYOUT ═══ */}
-      {selectedDisease && (
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="max-w-7xl mx-auto px-6 py-6">
 
-            {/* ─── APOTHECARY PANEL (LEFT) ─── */}
-            <div className="lg:col-span-4 xl:col-span-3">
-              <div className="rounded-2xl border border-white/5 bg-bg-card overflow-hidden sticky top-20">
-                {/* Tabs */}
-                <div className="flex border-b border-white/5">
-                  {([
-                    ['pharmaceutical', '\u{1F48A}', 'Pharma'],
-                    ['natural', '\u{1F33F}', 'Natural'],
-                    ['frequency', '\u{1F50A}', 'Freq'],
-                    ['experimental', '\u{1F9EA}', 'Exptl'],
-                  ] as const).map(([key, icon, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => { setApothecaryTab(key); setCompoundSearch(''); }}
-                      className={`flex-1 py-3 text-xs font-heading font-semibold transition-all relative ${
-                        apothecaryTab === key
-                          ? 'text-text-primary bg-white/[0.03]'
-                          : 'text-text-muted hover:text-text-secondary'
-                      }`}
-                    >
-                      <span className="block text-base mb-0.5">{icon}</span>
-                      {label}
-                      {apothecaryTab === key && (
-                        <div
-                          className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                          style={{ backgroundColor: getTypeColor(key) }}
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
+        {/* ═════════════════════════════════════════════════════════════════
+           APOTHECARY TAB
+           ═════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'apothecary' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Compound Library */}
+            <div className="space-y-4">
+              <h2 className="font-heading text-lg font-bold text-text-primary flex items-center gap-2">
+                <Beaker className="w-5 h-5 text-genesis-gold" />
+                Compound Library
+              </h2>
 
-                {/* Compound search */}
-                <div className="p-3 border-b border-white/5">
+              {/* Search + Filter */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <input
                     type="text"
                     value={compoundSearch}
                     onChange={e => setCompoundSearch(e.target.value)}
-                    placeholder="Filter compounds..."
-                    className="w-full bg-bg-void/40 border border-white/5 rounded-lg px-3 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-white/20 transition-colors font-body"
+                    placeholder="Search compounds..."
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-bg-surface border border-white/10 text-text-primary placeholder:text-text-muted text-sm focus:outline-none focus:border-genesis-gold/40"
                   />
                 </div>
-
-                {/* Compound list */}
-                <div className="max-h-[60vh] overflow-y-auto p-3 space-y-2">
-                  {apothecaryTab === 'pharmaceutical' && filterBySearch(PHARMACEUTICALS).map(c => (
-                    <CompoundCard
-                      key={c.name}
-                      name={c.name}
-                      subtitle={c.class}
-                      mechanism={c.mechanism}
-                      extra={`Route: ${c.route}`}
-                      type="pharmaceutical"
-                      onAdd={() => addCompound(c)}
-                      disabled={craftingSlots.length >= 5 || craftingSlots.some(s => getCompoundName(s.compound) === c.name)}
-                    />
-                  ))}
-                  {apothecaryTab === 'natural' && filterBySearch(NATURALS).map(c => (
-                    <CompoundCard
-                      key={c.name}
-                      name={c.name}
-                      subtitle={c.category}
-                      mechanism={c.mechanism}
-                      extra={<EvidenceStars rating={c.evidenceRating} />}
-                      type="natural"
-                      onAdd={() => addCompound(c)}
-                      disabled={craftingSlots.length >= 5 || craftingSlots.some(s => getCompoundName(s.compound) === c.name)}
-                    />
-                  ))}
-                  {apothecaryTab === 'frequency' && filterBySearch(FREQUENCIES).map(c => (
-                    <CompoundCard
-                      key={c.name}
-                      name={c.name}
-                      subtitle={`${c.frequency} Hz`}
-                      mechanism={c.description}
-                      extra={<EvidenceStars rating={c.evidenceRating} />}
-                      type="frequency"
-                      onAdd={() => addCompound(c)}
-                      disabled={craftingSlots.length >= 5 || craftingSlots.some(s => getCompoundName(s.compound) === c.name)}
-                    />
-                  ))}
-                  {apothecaryTab === 'experimental' && filterBySearch(EXPERIMENTALS).map(c => (
-                    <CompoundCard
-                      key={c.name}
-                      name={c.name}
-                      subtitle={c.researchStatus.slice(0, 60)}
-                      mechanism={c.mechanism}
-                      extra={<EvidenceStars rating={c.evidenceRating} />}
-                      type="experimental"
-                      onAdd={() => addCompound(c)}
-                      disabled={craftingSlots.length >= 5 || craftingSlots.some(s => getCompoundName(s.compound) === c.name)}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ─── CRAFTING TABLE (CENTER) ─── */}
-            <div className="lg:col-span-4 xl:col-span-5">
-              <div className="rounded-2xl border border-genesis-gold/20 bg-bg-card box-glow-gold p-6">
-                <h3 className="font-heading font-bold text-lg text-genesis-gold glow-gold mb-4 flex items-center gap-2">
-                  <span>{'\u2697\uFE0F'}</span> Crafting Table
-                  <span className="ml-auto text-xs font-mono text-text-muted">{craftingSlots.length}/5 slots</span>
-                </h3>
-
-                {/* Slots */}
-                <div className="space-y-3 mb-6">
-                  {[0, 1, 2, 3, 4].map(i => {
-                    const slot = craftingSlots[i];
-                    if (!slot) {
-                      return (
-                        <div
-                          key={i}
-                          className="border border-dashed border-white/10 rounded-xl p-4 flex items-center justify-center"
-                        >
-                          <span className="text-text-muted text-sm">
-                            {i === 0 && craftingSlots.length === 0 ? 'Add compounds from the Apothecary to begin' : `Slot ${i + 1} — empty`}
-                          </span>
-                        </div>
-                      );
-                    }
-                    const name = getCompoundName(slot.compound);
-                    const typeColor = getTypeColor(slot.type);
-                    return (
-                      <div
-                        key={`${name}-${i}`}
-                        className="border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 transition-all"
-                        style={{ borderColor: `${typeColor}30`, background: `${typeColor}05` }}
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-lg">{getTypeIcon(slot.type)}</span>
-                          <div className="min-w-0">
-                            <p className="font-heading font-semibold text-sm truncate" style={{ color: typeColor }}>{name}</p>
-                            <p className="text-[11px] text-text-muted truncate">{getMechanism(slot.compound).slice(0, 60)}...</p>
-                          </div>
-                        </div>
-                        {/* Dosage selector */}
-                        <div className="flex items-center gap-1 bg-bg-void/40 rounded-lg p-1">
-                          {(['low', 'standard', 'high'] as const).map(d => (
-                            <button
-                              key={d}
-                              onClick={() => updateDosage(i, d)}
-                              className={`px-2 py-1 rounded-md text-[10px] font-mono font-semibold uppercase transition-all ${
-                                slot.dosage === d
-                                  ? 'bg-white/10 text-text-primary'
-                                  : 'text-text-muted hover:text-text-secondary'
-                              }`}
-                            >
-                              {d}
-                            </button>
-                          ))}
-                        </div>
-                        {/* Remove */}
-                        <button
-                          onClick={() => removeCompound(i)}
-                          className="text-text-muted hover:text-genesis-red transition-colors text-lg leading-none"
-                          title="Remove compound"
-                        >
-                          {'\u00D7'}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Duration */}
-                <div className="mb-6">
-                  <label className="block text-xs font-heading font-semibold uppercase tracking-wider text-text-muted mb-2">
-                    Treatment Duration
-                  </label>
-                  <div className="flex gap-2">
-                    {(['acute', 'short-term', 'long-term'] as const).map(d => (
-                      <button
-                        key={d}
-                        onClick={() => setDuration(d)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-heading font-semibold border transition-all capitalize ${
-                          duration === d
-                            ? 'border-genesis-cyan/40 bg-genesis-cyan/5 text-genesis-cyan'
-                            : 'border-white/10 text-text-muted hover:text-text-secondary'
-                        }`}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SIMULATE button */}
-                <button
-                  onClick={handleSimulate}
-                  disabled={craftingSlots.length === 0 || isSimulating}
-                  className="w-full py-4 rounded-xl font-heading font-bold text-lg uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed relative overflow-hidden group"
-                  style={{
-                    background: craftingSlots.length > 0 ? 'linear-gradient(135deg, #FFD700, #FF9933)' : undefined,
-                    color: craftingSlots.length > 0 ? '#000408' : undefined,
-                    boxShadow: craftingSlots.length > 0 ? '0 0 30px rgba(255, 215, 0, 0.3), 0 0 60px rgba(255, 215, 0, 0.1)' : undefined,
-                  }}
+                <select
+                  value={typeFilter}
+                  onChange={e => setTypeFilter(e.target.value as typeof typeFilter)}
+                  className="px-3 py-2.5 rounded-lg bg-bg-surface border border-white/10 text-text-secondary text-sm focus:outline-none focus:border-genesis-gold/40"
                 >
-                  {isSimulating ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Simulating Molecular Interactions...
-                    </span>
-                  ) : (
-                    <>
-                      <span className="relative z-10">{'\u26A1'} SIMULATE</span>
-                      {craftingSlots.length > 0 && (
-                        <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
-                      )}
-                    </>
-                  )}
-                </button>
+                  <option value="all">All Types</option>
+                  <option value="pharmaceutical">Pharmaceutical</option>
+                  <option value="natural">Natural</option>
+                  <option value="experimental">Experimental</option>
+                </select>
               </div>
 
-              {/* ─── SIMULATION LOADING ANIMATION ─── */}
-              {isSimulating && (
-                <div className="mt-6 rounded-2xl border border-genesis-cyan/20 bg-bg-card p-8 flex flex-col items-center justify-center">
-                  <div className="relative w-24 h-24 mb-4">
-                    <div className="absolute inset-0 rounded-full border-2 border-genesis-cyan/20 animate-ping" />
-                    <div className="absolute inset-2 rounded-full border-2 border-genesis-magenta/30 animate-ping" style={{ animationDelay: '0.5s' }} />
-                    <div className="absolute inset-4 rounded-full border-2 border-genesis-gold/40 animate-ping" style={{ animationDelay: '1s' }} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl animate-pulse">{'\u{1F9EC}'}</span>
-                    </div>
-                  </div>
-                  <p className="font-heading font-semibold text-genesis-cyan animate-pulse text-sm">
-                    Modeling molecular pathways...
-                  </p>
-                  <p className="text-text-muted text-xs mt-1 font-mono">
-                    Analyzing {craftingSlots.length} compound{craftingSlots.length > 1 ? 's' : ''} against {selectedDisease.name}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* ─── RESULTS PANEL (RIGHT) ─── */}
-            <div className="lg:col-span-4 xl:col-span-4">
-              {simulationResult ? (
-                <div className="rounded-2xl border border-white/5 bg-bg-card overflow-hidden">
-                  {/* Score header */}
-                  <div className="p-6 border-b border-white/5 text-center" style={{ background: `linear-gradient(135deg, ${scoreColor(simulationResult.overallScore)}08, transparent)` }}>
-                    <p className="text-xs font-heading font-semibold uppercase tracking-wider text-text-muted mb-2">
-                      Overall Effectiveness
-                    </p>
-                    <div
-                      className="text-6xl font-heading font-black tabular-nums"
-                      style={{
-                        color: scoreColor(simulationResult.overallScore),
-                        textShadow: `0 0 30px ${scoreColor(simulationResult.overallScore)}60`,
-                      }}
-                    >
-                      {simulationResult.overallScore}
-                    </div>
-                    <div className="w-full h-2 bg-white/5 rounded-full mt-3 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000"
+              {/* Compound Cards */}
+              <div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1">
+                {filteredCompounds.map(compound => {
+                  const color = typeColor(compound.type);
+                  const isSelected = selectedCompound?.name === compound.name;
+                  const inCrafting = craftingSlots.some(c => c.name === compound.name);
+                  return (
+                    <div key={compound.name}>
+                      <button
+                        onClick={() => setSelectedCompound(isSelected ? null : compound)}
+                        className={`w-full text-left rounded-lg border p-3.5 transition-all ${
+                          isSelected ? 'border-opacity-40' : 'border-white/10 hover:border-white/20'
+                        }`}
                         style={{
-                          width: `${simulationResult.overallScore}%`,
-                          background: `linear-gradient(90deg, ${scoreColor(simulationResult.overallScore)}80, ${scoreColor(simulationResult.overallScore)})`,
-                          boxShadow: `0 0 10px ${scoreColor(simulationResult.overallScore)}40`,
+                          borderColor: isSelected ? color + '60' : undefined,
+                          backgroundColor: isSelected ? color + '08' : undefined,
+                          boxShadow: isSelected ? `0 0 15px ${color}10` : undefined,
                         }}
-                      />
-                    </div>
-                    <p className="text-xs text-text-muted mt-2">
-                      {simulationResult.overallScore >= 80 ? 'Highly effective combination' :
-                       simulationResult.overallScore >= 60 ? 'Moderately effective approach' :
-                       simulationResult.overallScore >= 40 ? 'Limited effectiveness — consider alternatives' :
-                       'Low effectiveness — try different compounds'}
-                    </p>
-                  </div>
-
-                  <div className="p-5 space-y-5 max-h-[60vh] overflow-y-auto">
-                    {/* Mechanism */}
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-genesis-cyan mb-2">
-                        Mechanism of Action
-                      </h4>
-                      <p className="text-sm text-text-secondary leading-relaxed">{simulationResult.mechanismExplanation}</p>
-                    </div>
-
-                    {/* Timeline */}
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-genesis-cyan mb-2">
-                        Projected Timeline
-                      </h4>
-                      <div className="space-y-2">
-                        {simulationResult.timeline.map((t, i) => (
-                          <div key={i} className="flex gap-3 items-start">
-                            <span className="font-mono text-[11px] text-genesis-gold font-semibold whitespace-nowrap mt-0.5 w-14">
-                              {t.day}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span style={{ color }}>{typeIcon(compound.type)}</span>
+                            <span className="font-heading font-semibold text-sm text-text-primary">{compound.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="text-[10px] px-2 py-0.5 rounded-full font-mono capitalize"
+                              style={{ color, backgroundColor: color + '15' }}
+                            >
+                              {compound.type}
                             </span>
-                            <div className="flex-1">
-                              <div className="w-px h-2 bg-white/10 ml-[-1px] hidden sm:block" />
-                              <p className="text-xs text-text-secondary leading-relaxed">{t.effect}</p>
+                            {!inCrafting && craftingSlots.length < 3 && (
+                              <button
+                                onClick={e => { e.stopPropagation(); addToCrafting(compound); }}
+                                className="p-1 rounded bg-genesis-gold/10 text-genesis-gold hover:bg-genesis-gold/20 transition-colors"
+                                title="Add to Crafting Table"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            )}
+                            {inCrafting && (
+                              <span className="text-[10px] text-genesis-gold font-mono">IN CRAFT</span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-text-muted text-xs leading-relaxed line-clamp-2">{compound.mechanism}</p>
+                      </button>
+
+                      {/* Expanded compound detail */}
+                      {isSelected && (
+                        <div className="ml-3 mt-1 mb-2 p-3 rounded-lg border border-white/5 bg-bg-void/50 space-y-3">
+                          <div>
+                            <h4 className="text-[10px] font-heading font-semibold text-genesis-gold uppercase tracking-wider mb-1">Mechanism of Action</h4>
+                            <p className="text-xs text-text-secondary leading-relaxed">{compound.mechanism}</p>
+                          </div>
+                          <div>
+                            <h4 className="text-[10px] font-heading font-semibold text-genesis-cyan uppercase tracking-wider mb-1">Target Systems</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {compound.targets.map(t => (
+                                <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-genesis-cyan/10 text-genesis-cyan border border-genesis-cyan/20">{t}</span>
+                              ))}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Side effects */}
-                    <div>
-                      <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-genesis-cyan mb-2">
-                        Side Effects
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {simulationResult.sideEffects.map((se, i) => (
-                          <span
-                            key={i}
-                            className="px-2.5 py-1 rounded-full text-[11px] font-mono border"
-                            style={{
-                              borderColor: se.severity === 'severe' ? '#FF336630' : se.severity === 'moderate' ? '#FFD70030' : '#00FF9430',
-                              color: se.severity === 'severe' ? '#FF3366' : se.severity === 'moderate' ? '#FFD700' : '#00FF94',
-                              backgroundColor: se.severity === 'severe' ? '#FF336608' : se.severity === 'moderate' ? '#FFD70008' : '#00FF9408',
-                            }}
-                          >
-                            {se.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Interactions */}
-                    {simulationResult.interactions.length > 0 && (
-                      <div>
-                        <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-genesis-red mb-2">
-                          {'\u26A0\uFE0F'} Interactions & Warnings
-                        </h4>
-                        <ul className="space-y-1">
-                          {simulationResult.interactions.map((int, i) => (
-                            <li key={i} className="text-xs text-text-secondary flex items-start gap-2">
-                              <span className="text-genesis-red mt-0.5">{'\u2022'}</span>
-                              {int}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* AI Hint */}
-                    <div className="rounded-xl border border-genesis-magenta/20 bg-genesis-magenta/5 p-4">
-                      <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-genesis-magenta mb-1">
-                        {'\u{1F9E0}'} AI Insight — Next Move
-                      </h4>
-                      <p className="text-sm text-text-secondary">{simulationResult.aiHint}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-white/5 bg-bg-card p-8 flex flex-col items-center justify-center min-h-[300px]">
-                  <div className="text-5xl mb-4 opacity-20">{'\u{1F52C}'}</div>
-                  <p className="font-heading font-semibold text-text-muted text-sm text-center">
-                    Add compounds and simulate to see results
-                  </p>
-                  <p className="text-text-muted text-xs mt-1 text-center">
-                    The Cure Crafting Engine will analyze molecular interactions,<br />
-                    predict effectiveness, and suggest optimizations.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ═══ DISCOVERY ENGINE ═══ */}
-          {showDiscovery && (
-            <div className="mt-8">
-              <div className="rounded-2xl border border-genesis-magenta/20 bg-bg-card box-glow-magenta p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-heading font-bold text-lg text-genesis-magenta glow-magenta flex items-center gap-2">
-                    <span>{'\u{1F52C}'}</span> Discovery Engine — Unexplored Connections
-                  </h3>
-                  <button
-                    onClick={() => setShowDiscovery(false)}
-                    className="text-text-muted hover:text-text-primary transition-colors"
-                  >
-                    {'\u00D7'}
-                  </button>
-                </div>
-                {isDiscovering ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 border-2 border-genesis-magenta/30 border-t-genesis-magenta rounded-full animate-spin" />
-                      <p className="text-genesis-magenta text-sm font-heading animate-pulse">Scanning molecular databases...</p>
-                    </div>
-                  </div>
-                ) : discoveryCards.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {discoveryCards.map((card, i) => (
-                      <div key={i} className="rounded-xl border border-genesis-magenta/10 bg-bg-void/40 p-5 relative overflow-hidden">
-                        <div className="absolute top-3 right-3">
-                          <span className="px-2 py-0.5 rounded-full bg-genesis-magenta/10 border border-genesis-magenta/20 text-genesis-magenta text-[9px] font-mono font-bold uppercase">
-                            Speculative
-                          </span>
-                        </div>
-                        <h4 className="font-heading font-bold text-sm text-genesis-cyan mb-1">{card.compoundName}</h4>
-                        <p className="text-[11px] text-text-muted mb-3">Current use: {card.currentUse}</p>
-                        <div className="space-y-2">
                           <div>
-                            <p className="text-[10px] font-heading font-semibold uppercase tracking-wider text-genesis-gold mb-0.5">Theoretical Mechanism</p>
-                            <p className="text-xs text-text-secondary leading-relaxed">{card.theoreticalMechanism}</p>
+                            <h4 className="text-[10px] font-heading font-semibold text-genesis-red uppercase tracking-wider mb-1">Side Effects</h4>
+                            <div className="space-y-0.5">
+                              {compound.sideEffects.map(se => (
+                                <div key={se} className="flex items-start gap-1.5 text-[11px] text-text-muted">
+                                  <AlertTriangle className="w-2.5 h-2.5 mt-0.5 text-genesis-red/60 flex-shrink-0" />
+                                  {se}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                           <div>
-                            <p className="text-[10px] font-heading font-semibold uppercase tracking-wider text-genesis-green mb-0.5">Molecular Basis</p>
-                            <p className="text-xs text-text-secondary leading-relaxed">{card.molecularBasis}</p>
+                            <h4 className="text-[10px] font-heading font-semibold text-genesis-gold uppercase tracking-wider mb-1">Interaction Warnings</h4>
+                            <div className="space-y-0.5">
+                              {compound.interactionWarnings.map(w => (
+                                <div key={w} className="flex items-start gap-1.5 text-[11px] text-text-muted">
+                                  <Shield className="w-2.5 h-2.5 mt-0.5 text-genesis-gold/60 flex-shrink-0" />
+                                  {w}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-text-muted text-sm text-center py-8">No unexplored connections found for this disease yet.</p>
-                )}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          )}
 
-          {/* ═══ MASTERMIND BOARD ═══ */}
-          <div className="mt-8">
-            <div className="rounded-2xl border border-white/5 bg-bg-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading font-bold text-lg text-text-primary flex items-center gap-2">
-                  <span>{'\u{1F9E9}'}</span> Mastermind Board
-                  {mastermindAttempts.length > 0 && (
-                    <span className="text-xs font-mono text-text-muted ml-2">
-                      {mastermindAttempts.length} attempt{mastermindAttempts.length !== 1 ? 's' : ''} {'\u2022'} Best: <span style={{ color: scoreColor(bestScore) }}>{bestScore}</span>
-                    </span>
-                  )}
-                </h3>
-                {mastermindAttempts.length > 0 && (
-                  <button
-                    onClick={clearHistory}
-                    className="text-xs text-text-muted hover:text-genesis-red transition-colors font-heading"
-                  >
-                    Clear History
-                  </button>
-                )}
-              </div>
+            {/* Right: Crafting Table + Simulation */}
+            <div className="space-y-4">
+              {/* Crafting Table */}
+              <h2 className="font-heading text-lg font-bold text-text-primary flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-genesis-gold" />
+                Crafting Table
+              </h2>
 
-              {mastermindAttempts.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-text-muted text-sm">No attempts yet. Craft your first combination and simulate.</p>
-                  <p className="text-text-muted text-xs mt-1">Each attempt adds a row — green means effective, yellow is partial, red is ineffective.</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {mastermindAttempts.map((attempt, i) => {
-                    const isBest = attempt.score === bestScore;
+              <div className="rounded-xl border border-genesis-gold/20 bg-bg-surface p-5 box-glow-gold">
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {[0, 1, 2].map(i => {
+                    const compound = craftingSlots[i];
                     return (
                       <div
-                        key={attempt.id}
-                        className={`flex items-center gap-4 p-3 rounded-xl border transition-all ${
-                          isBest ? 'border-genesis-gold/30 bg-genesis-gold/[0.03]' : 'border-white/5 bg-white/[0.01]'
+                        key={i}
+                        className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center p-3 transition-all ${
+                          compound ? 'border-genesis-gold/40 bg-genesis-gold/5' : 'border-white/10 bg-bg-void/30'
                         }`}
                       >
-                        {/* Attempt number */}
-                        <span className="text-xs font-mono text-text-muted w-6 text-right">#{i + 1}</span>
-
-                        {/* Color circles */}
-                        <div className="flex gap-1.5">
-                          {attempt.compounds.map((c, j) => (
-                            <div
-                              key={j}
-                              className="w-6 h-6 rounded-full border-2 flex items-center justify-center group relative"
-                              style={{
-                                borderColor: colorToHex(c.color),
-                                backgroundColor: `${colorToHex(c.color)}15`,
-                                boxShadow: c.color !== 'white' ? `0 0 8px ${colorToHex(c.color)}30` : undefined,
-                              }}
-                              title={c.name}
+                        {compound ? (
+                          <>
+                            <button
+                              onClick={() => removeFromCrafting(compound.name)}
+                              className="absolute top-1 right-1 text-text-muted hover:text-genesis-red"
                             >
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: colorToHex(c.color) }}
-                              />
+                              <X className="w-3 h-3" />
+                            </button>
+                            <div className="mb-1.5" style={{ color: typeColor(compound.type) }}>
+                              {typeIcon(compound.type)}
                             </div>
-                          ))}
-                        </div>
-
-                        {/* Compound names */}
-                        <div className="flex-1 min-w-0 hidden sm:block">
-                          <p className="text-[11px] text-text-muted truncate">
-                            {attempt.compounds.filter(c => c.name !== '-').map(c => c.name).join(' + ')}
-                          </p>
-                        </div>
-
-                        {/* Score bar */}
-                        <div className="flex items-center gap-2 w-32">
-                          <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full"
-                              style={{
-                                width: `${attempt.score}%`,
-                                backgroundColor: scoreColor(attempt.score),
-                                boxShadow: `0 0 6px ${scoreColor(attempt.score)}40`,
-                              }}
-                            />
-                          </div>
-                          <span
-                            className="text-xs font-mono font-bold w-8 text-right"
-                            style={{ color: scoreColor(attempt.score) }}
-                          >
-                            {attempt.score}
-                          </span>
-                        </div>
-
-                        {/* Best badge */}
-                        {isBest && (
-                          <span className="text-genesis-gold text-xs" title="Best attempt">{'\u{1F451}'}</span>
+                            <span className="text-xs font-heading font-semibold text-text-primary text-center leading-tight">{compound.name}</span>
+                            <span className="text-[9px] text-text-muted capitalize mt-0.5">{compound.type}</span>
+                            <button
+                              onClick={() => removeFromCrafting(compound.name)}
+                              className="mt-1.5 text-[9px] text-genesis-red/60 hover:text-genesis-red transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-5 h-5 text-text-muted/30 mb-1" />
+                            <span className="text-[10px] text-text-muted/50">Slot {i + 1}</span>
+                          </>
                         )}
                       </div>
                     );
                   })}
                 </div>
+
+                <button
+                  onClick={simulate}
+                  disabled={craftingSlots.length < 2 || isSimulating}
+                  className="w-full py-3 rounded-lg font-heading font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed bg-genesis-gold/15 border border-genesis-gold/30 text-genesis-gold hover:bg-genesis-gold/25"
+                >
+                  {isSimulating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Simulating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      Simulate Combination
+                    </>
+                  )}
+                </button>
+                {craftingSlots.length < 2 && (
+                  <p className="text-[10px] text-text-muted text-center mt-2">Add at least 2 compounds to simulate</p>
+                )}
+              </div>
+
+              {/* Simulation Results */}
+              {simulationResult && (
+                <div className="rounded-xl border border-white/10 bg-bg-surface p-5 space-y-4">
+                  <h3 className="font-heading text-base font-bold text-text-primary flex items-center gap-2">
+                    <FlaskConical className="w-4 h-4 text-genesis-gold" />
+                    Simulation Results
+                  </h3>
+
+                  {/* Synergy Score */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 h-20">
+                      <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                        <circle
+                          cx="40" cy="40" r="34" fill="none"
+                          stroke={synergyColor(simulationResult.synergyScore)}
+                          strokeWidth="6"
+                          strokeDasharray={`${(simulationResult.synergyScore / 100) * 213.6} 213.6`}
+                          strokeLinecap="round"
+                          style={{ filter: `drop-shadow(0 0 6px ${synergyColor(simulationResult.synergyScore)}40)` }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-lg font-heading font-bold" style={{ color: synergyColor(simulationResult.synergyScore) }}>
+                          {simulationResult.synergyScore}
+                        </span>
+                        <span className="text-[8px] text-text-muted">SYNERGY</span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xs font-heading font-semibold text-genesis-gold mb-1">Efficacy Estimate</h4>
+                      <p className="text-xs text-text-secondary leading-relaxed">{simulationResult.efficacyEstimate}</p>
+                    </div>
+                  </div>
+
+                  {/* Mechanism Analysis */}
+                  <div>
+                    <h4 className="text-[10px] font-heading font-semibold text-genesis-cyan uppercase tracking-wider mb-1.5">Mechanism Analysis</h4>
+                    <p className="text-xs text-text-secondary leading-relaxed bg-bg-void/50 rounded-lg p-3 border border-white/5">{simulationResult.mechanismAnalysis}</p>
+                  </div>
+
+                  {/* Predicted Effects */}
+                  <div>
+                    <h4 className="text-[10px] font-heading font-semibold text-genesis-green uppercase tracking-wider mb-1.5">Predicted Effects</h4>
+                    <div className="space-y-1.5">
+                      {simulationResult.predictedEffects.map((e, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-text-secondary">
+                          <CheckCircle2 className="w-3 h-3 mt-0.5 text-genesis-green flex-shrink-0" />
+                          {e}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Interaction Warnings */}
+                  {simulationResult.interactionWarnings.length > 0 && (
+                    <div>
+                      <h4 className="text-[10px] font-heading font-semibold text-genesis-red uppercase tracking-wider mb-1.5">Interaction Warnings</h4>
+                      <div className="space-y-1.5">
+                        {simulationResult.interactionWarnings.map((w, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-text-secondary">
+                            <AlertTriangle className="w-3 h-3 mt-0.5 text-genesis-red flex-shrink-0" />
+                            {w}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
+        )}
 
-          {/* ═══ DISCLAIMER ═══ */}
-          <div className="mt-8 rounded-2xl border border-white/5 bg-bg-card p-6">
-            <div className="flex items-start gap-3">
-              <span className="text-genesis-red text-lg mt-0.5">{'\u26A0\uFE0F'}</span>
-              <div>
-                <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-genesis-red mb-1">
-                  Medical Disclaimer
-                </h4>
-                <p className="text-xs text-text-muted leading-relaxed">
-                  GENESIS Cure Crafting Engine is an educational simulation tool designed for learning and exploration purposes only.
-                  It does not provide medical advice, diagnosis, or treatment recommendations. The simulation results are based on
-                  simplified pharmacological models and should never be used to make real medical decisions. Effectiveness scores
-                  are approximations for educational purposes. Always consult qualified healthcare professionals before starting,
-                  stopping, or changing any medical treatment. Drug interactions shown are not exhaustive. Frequency and energy
-                  therapies have varying levels of scientific evidence. Experimental treatments may not be available or appropriate
-                  for all conditions.
-                </p>
+        {/* ═════════════════════════════════════════════════════════════════
+           MASTERMIND TAB
+           ═════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'mastermind' && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="font-heading text-2xl font-bold text-text-primary mb-2 flex items-center justify-center gap-2">
+                <Puzzle className="w-6 h-6 text-genesis-gold" />
+                <span className="glow-gold">Mastermind</span>
+              </h2>
+              <p className="text-text-secondary text-sm mb-1">Pick 3 compounds to treat the target condition</p>
+              <p className="text-text-muted text-xs">
+                <span style={{ color: '#00FF94' }}>Green</span> = correct compound &middot;{' '}
+                <span style={{ color: '#FFD700' }}>Yellow</span> = right category &middot;{' '}
+                <span style={{ color: '#4A6080' }}>Gray</span> = wrong
+              </p>
+            </div>
+
+            {/* Score + Target */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="rounded-lg border border-genesis-gold/20 bg-bg-surface px-4 py-2">
+                  <span className="text-[10px] text-text-muted font-mono block">TARGET</span>
+                  <span className="font-heading font-bold text-genesis-gold text-lg">{currentCondition.name}</span>
+                </div>
+                <div className="text-xs text-text-muted">
+                  Attempt {Math.min(guesses.length + 1, 6)}/6
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <Trophy className="w-4 h-4 text-genesis-gold inline mr-1" />
+                  <span className="text-sm font-mono text-text-secondary">{totalWins}/{totalGames}</span>
+                </div>
+                <button
+                  onClick={newGame}
+                  className="p-2 rounded-lg bg-bg-surface border border-white/10 text-text-muted hover:text-text-secondary hover:border-white/20 transition-colors"
+                  title="New Game"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ═══ NO DISEASE SELECTED ═══ */}
-      {!selectedDisease && (
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-white/5 bg-bg-card p-16 flex flex-col items-center justify-center text-center">
-            <div className="text-7xl mb-6 animate-float">{'\u{1F9EC}'}</div>
-            <h2 className="font-heading font-bold text-2xl text-text-primary mb-2">Select a Disease to Begin</h2>
-            <p className="text-text-secondary text-sm max-w-md">
-              Choose a disease from above to unlock the Apothecary, Crafting Table, and Mastermind Board.
-              Combine pharmaceuticals, natural compounds, frequencies, and experimental therapies to
-              simulate treatment approaches.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-8">
-              {DISEASES.map(d => (
+            {/* Previous Guesses */}
+            {guesses.length > 0 && (
+              <div className="space-y-2">
+                {guesses.map((guess, gi) => (
+                  <div key={gi} className="flex gap-2">
+                    {guess.feedback.map((fb, fi) => (
+                      <div
+                        key={fi}
+                        className="flex-1 rounded-lg border p-3 flex items-center gap-2"
+                        style={{
+                          borderColor: feedbackColor(fb.status) + '40',
+                          backgroundColor: feedbackColor(fb.status) + '10',
+                        }}
+                      >
+                        <span style={{ color: feedbackColor(fb.status) }}>{feedbackIcon(fb.status)}</span>
+                        <span className="text-sm font-heading font-semibold text-text-primary">{fb.compound}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Current Guess Slots */}
+            {!gameOver && (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  {[0, 1, 2].map(i => {
+                    const name = guessSlots[i];
+                    return (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-lg border-2 border-dashed p-3 flex items-center justify-center min-h-[52px] transition-all ${
+                          name ? 'border-genesis-gold/40 bg-genesis-gold/5' : 'border-white/10'
+                        }`}
+                      >
+                        {name ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-heading font-semibold text-text-primary">{name}</span>
+                            <button onClick={() => removeFromGuess(name)} className="text-text-muted hover:text-genesis-red">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-text-muted/50">Slot {i + 1}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <button
-                  key={d.name}
-                  onClick={() => setSelectedDisease(d)}
-                  className="px-4 py-3 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/5 transition-all group"
+                  onClick={submitGuess}
+                  disabled={guessSlots.length !== 3}
+                  className="w-full py-3 rounded-lg font-heading font-semibold text-sm bg-genesis-gold/15 border border-genesis-gold/30 text-genesis-gold hover:bg-genesis-gold/25 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  <span
-                    className="font-heading font-semibold text-sm transition-colors group-hover:drop-shadow-lg"
-                    style={{ color: d.color }}
-                  >
-                    {d.name}
-                  </span>
-                  <p className="text-[10px] text-text-muted mt-0.5">{d.systems.join(', ')}</p>
+                  <Target className="w-4 h-4" />
+                  Submit Guess
                 </button>
-              ))}
+
+                {/* Compound picker */}
+                <div>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type="text"
+                      value={mmCompoundSearch}
+                      onChange={e => setMmCompoundSearch(e.target.value)}
+                      placeholder="Search compounds..."
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-bg-surface border border-white/10 text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-genesis-gold/40"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {mmFilteredCompounds.map(name => {
+                      const compound = COMPOUNDS.find(c => c.name === name)!;
+                      const color = typeColor(compound.type);
+                      const used = guesses.some(g => g.compounds.includes(name));
+                      const inSlot = guessSlots.includes(name);
+                      return (
+                        <button
+                          key={name}
+                          onClick={() => addToGuess(name)}
+                          disabled={used || inSlot || guessSlots.length >= 3}
+                          className="px-2.5 py-1.5 rounded-lg border text-xs font-heading transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                          style={{
+                            borderColor: inSlot ? color + '60' : 'rgba(255,255,255,0.1)',
+                            backgroundColor: inSlot ? color + '10' : undefined,
+                            color: used ? '#4A6080' : color,
+                          }}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Game Over */}
+            {gameOver && (
+              <div className={`rounded-xl border p-6 text-center ${
+                gameWon ? 'border-genesis-green/30 bg-genesis-green/5' : 'border-genesis-red/30 bg-genesis-red/5'
+              }`}>
+                {gameWon ? (
+                  <>
+                    <Trophy className="w-10 h-10 text-genesis-gold mx-auto mb-3" />
+                    <h3 className="font-heading text-xl font-bold text-genesis-green mb-1">Cure Found!</h3>
+                    <p className="text-text-secondary text-sm">You identified the correct compound combination in {guesses.length} attempt{guesses.length > 1 ? 's' : ''}.</p>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-10 h-10 text-genesis-red mx-auto mb-3" />
+                    <h3 className="font-heading text-xl font-bold text-genesis-red mb-1">Trial Failed</h3>
+                    <p className="text-text-secondary text-sm mb-3">The correct combination was:</p>
+                    <div className="flex justify-center gap-2">
+                      {currentCondition.solution.map(name => (
+                        <span key={name} className="px-3 py-1.5 rounded-lg bg-genesis-green/10 border border-genesis-green/30 text-genesis-green text-sm font-heading font-semibold">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <button
+                  onClick={newGame}
+                  className="mt-4 px-6 py-2.5 rounded-lg bg-genesis-gold/15 border border-genesis-gold/30 text-genesis-gold font-heading font-semibold text-sm hover:bg-genesis-gold/25 transition-all inline-flex items-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  New Game
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═════════════════════════════════════════════════════════════════
+           DISCOVERY TAB
+           ═════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'discovery' && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="font-heading text-2xl font-bold text-text-primary mb-2 flex items-center justify-center gap-2">
+                <Lightbulb className="w-6 h-6 text-genesis-gold" />
+                <span className="glow-gold">Discovery Engine</span>
+              </h2>
+              <p className="text-text-secondary text-sm">What if? Type a hypothesis and explore the possibilities.</p>
             </div>
+
+            {/* Hypothesis Input */}
+            <div className="rounded-xl border border-genesis-gold/20 bg-bg-surface p-5 box-glow-gold">
+              <label className="text-xs font-heading font-semibold text-genesis-gold uppercase tracking-wider block mb-2">
+                Your Hypothesis
+              </label>
+              <textarea
+                value={hypothesis}
+                onChange={e => setHypothesis(e.target.value)}
+                placeholder='e.g., "What if we combined aspirin with curcumin for inflammation?" or "Could rapamycin and metformin slow aging?"'
+                rows={3}
+                className="w-full p-3 rounded-lg bg-bg-void/50 border border-white/10 text-text-primary placeholder:text-text-muted text-sm focus:outline-none focus:border-genesis-gold/40 resize-none"
+              />
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-[10px] text-text-muted">Try mentioning specific compounds for more detailed analysis</p>
+                <button
+                  onClick={submitHypothesis}
+                  disabled={!hypothesis.trim() || isDiscovering}
+                  className="px-5 py-2.5 rounded-lg bg-genesis-gold/15 border border-genesis-gold/30 text-genesis-gold font-heading font-semibold text-sm hover:bg-genesis-gold/25 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isDiscovering ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Analyze
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Example Hypotheses */}
+            {!discoveryResult && !isDiscovering && (
+              <div>
+                <p className="text-xs text-text-muted mb-2 font-heading">Try these hypotheses:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    'What if we combined aspirin with curcumin for chronic inflammation?',
+                    'Could CBD and morphine reduce opioid dependence while maintaining pain relief?',
+                    'What if rapamycin and metformin together could slow cellular aging?',
+                    'Would doxorubicin combined with quercetin reduce chemotherapy cardiotoxicity?',
+                  ].map(h => (
+                    <button
+                      key={h}
+                      onClick={() => { setHypothesis(h); }}
+                      className="text-left text-xs p-3 rounded-lg border border-white/5 bg-bg-card text-text-muted hover:text-text-secondary hover:border-white/15 transition-all"
+                    >
+                      <ChevronRight className="w-3 h-3 inline mr-1 text-genesis-gold" />
+                      {h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Loading */}
+            {isDiscovering && (
+              <div className="flex flex-col items-center py-12">
+                <Loader2 className="w-8 h-8 text-genesis-gold animate-spin mb-4" />
+                <p className="text-text-secondary text-sm">Running computational analysis...</p>
+                <p className="text-text-muted text-xs mt-1">Cross-referencing molecular pathways and existing research</p>
+              </div>
+            )}
+
+            {/* Discovery Results */}
+            {discoveryResult && !isDiscovering && (
+              <div className="space-y-4">
+                {/* Plausibility Score */}
+                <div className="rounded-xl border border-white/10 bg-bg-surface p-5">
+                  <div className="flex items-center gap-5">
+                    <div className="relative w-24 h-24 flex-shrink-0">
+                      <svg viewBox="0 0 96 96" className="w-full h-full -rotate-90">
+                        <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="7" />
+                        <circle
+                          cx="48" cy="48" r="40" fill="none"
+                          stroke={plausibilityColor(discoveryResult.plausibilityScore)}
+                          strokeWidth="7"
+                          strokeDasharray={`${(discoveryResult.plausibilityScore / 100) * 251.3} 251.3`}
+                          strokeLinecap="round"
+                          style={{ filter: `drop-shadow(0 0 8px ${plausibilityColor(discoveryResult.plausibilityScore)}40)` }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-2xl font-heading font-bold" style={{ color: plausibilityColor(discoveryResult.plausibilityScore) }}>
+                          {discoveryResult.plausibilityScore}
+                        </span>
+                        <span className="text-[8px] text-text-muted uppercase tracking-wider">Plausibility</span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-heading font-bold text-text-primary mb-1">Plausibility Assessment</h3>
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        {discoveryResult.plausibilityScore >= 75
+                          ? 'This hypothesis has strong mechanistic support and aligns with existing research.'
+                          : discoveryResult.plausibilityScore >= 50
+                          ? 'This hypothesis is plausible but requires further validation.'
+                          : 'This hypothesis is speculative. Limited mechanistic support found.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mechanism Analysis */}
+                <div className="rounded-xl border border-white/10 bg-bg-surface p-5">
+                  <h4 className="text-[10px] font-heading font-semibold text-genesis-cyan uppercase tracking-wider mb-2">Mechanism Analysis</h4>
+                  <p className="text-sm text-text-secondary leading-relaxed">{discoveryResult.mechanismAnalysis}</p>
+                </div>
+
+                {/* Potential Outcomes */}
+                <div className="rounded-xl border border-white/10 bg-bg-surface p-5">
+                  <h4 className="text-[10px] font-heading font-semibold text-genesis-green uppercase tracking-wider mb-2">Potential Outcomes</h4>
+                  <div className="space-y-2">
+                    {discoveryResult.potentialOutcomes.map((o, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                        <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-genesis-green flex-shrink-0" />
+                        {o}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Existing Research */}
+                <div className="rounded-xl border border-white/10 bg-bg-surface p-5">
+                  <h4 className="text-[10px] font-heading font-semibold text-genesis-gold uppercase tracking-wider mb-2">Existing Research</h4>
+                  <div className="space-y-2">
+                    {discoveryResult.existingResearch.map((r, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                        <FlaskConical className="w-3.5 h-3.5 mt-0.5 text-genesis-gold flex-shrink-0" />
+                        <span className="font-mono text-xs">{r}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Risk Assessment */}
+                <div className="rounded-xl border border-genesis-red/20 bg-bg-surface p-5">
+                  <h4 className="text-[10px] font-heading font-semibold text-genesis-red uppercase tracking-wider mb-2">Risk Assessment</h4>
+                  <p className="text-sm text-text-secondary leading-relaxed">{discoveryResult.riskAssessment}</p>
+                </div>
+
+                {/* Try Another */}
+                <div className="text-center pt-2">
+                  <button
+                    onClick={() => { setDiscoveryResult(null); setHypothesis(''); }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-bg-surface border border-white/10 text-text-secondary hover:text-text-primary hover:border-white/20 text-sm font-heading transition-all"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Try Another Hypothesis
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   COMPOUND CARD COMPONENT
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function CompoundCard({
-  name,
-  subtitle,
-  mechanism,
-  extra,
-  type,
-  onAdd,
-  disabled,
-}: {
-  name: string;
-  subtitle: string;
-  mechanism: string;
-  extra: React.ReactNode;
-  type: 'pharmaceutical' | 'natural' | 'frequency' | 'experimental';
-  onAdd: () => void;
-  disabled: boolean;
-}) {
-  const color = getTypeColor(type);
-
-  return (
-    <div
-      className="rounded-xl border p-3 transition-all hover:bg-white/[0.02] group"
-      style={{ borderColor: `${color}12` }}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm">{getTypeIcon(type)}</span>
-            <h4 className="font-heading font-semibold text-sm truncate" style={{ color }}>{name}</h4>
-          </div>
-          <p className="text-[10px] text-text-muted mt-0.5 truncate">{subtitle}</p>
-          <p className="text-[11px] text-text-secondary mt-1 leading-relaxed line-clamp-2">{mechanism.slice(0, 120)}...</p>
-          <div className="mt-1.5">{typeof extra === 'string' ? <span className="text-[10px] text-text-muted font-mono">{extra}</span> : extra}</div>
-        </div>
-        <button
-          onClick={onAdd}
-          disabled={disabled}
-          className="shrink-0 mt-1 px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold border transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-          style={{
-            borderColor: `${color}30`,
-            color,
-          }}
-        >
-          {disabled ? (name.length > 10 ? 'Added' : 'Added') : 'Add +'}
-        </button>
+        )}
       </div>
     </div>
   );

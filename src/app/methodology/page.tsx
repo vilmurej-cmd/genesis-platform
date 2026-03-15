@@ -1,119 +1,129 @@
 export default function MethodologyPage() {
   return (
-    <div className="min-h-screen pt-24 pb-20">
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="font-heading font-black text-4xl sm:text-5xl text-text-primary mb-4 text-center">
-          Methodology
-        </h1>
-        <p className="text-text-secondary text-lg text-center mb-16 max-w-2xl mx-auto">
-          How GENESIS simulations work, where the data comes from, and what the limitations are.
-        </p>
-
-        {/* How Simulations Work */}
-        <div className="rounded-2xl border border-white/8 bg-bg-card/60 p-8 mb-8">
-          <h2 className="font-heading font-bold text-xl text-genesis-cyan glow-cyan mb-4">How Simulations Work</h2>
-          <p className="text-text-secondary text-sm leading-relaxed mb-4">
-            GENESIS uses AI-powered models to simulate biological processes at multiple levels of abstraction. When you explore a disease in the Pathology module, the system models how cellular changes cascade through tissue, organ, and system levels. When you test a compound in the Lab, the system simulates pharmacokinetic and pharmacodynamic interactions based on known drug properties.
-          </p>
-          <p className="text-text-secondary text-sm leading-relaxed mb-4">
-            These are <span className="text-text-primary font-semibold">educational simulations</span>, not clinical predictions. They are designed to help users understand mechanisms and relationships, not to provide treatment guidance. The models simplify enormously complex biological systems into interactive visualizations.
-          </p>
-          <p className="text-text-secondary text-sm leading-relaxed">
-            Simulation outputs are generated using large language models trained on medical literature, combined with structured data from peer-reviewed sources. Results are presented as approximations to aid understanding, not as definitive medical conclusions.
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Hero */}
+        <div className="text-center mb-16">
+          <h1 className="font-heading font-bold text-4xl sm:text-5xl mb-4">
+            <span className="text-genesis-cyan glow-cyan">Methodology</span>
+          </h1>
+          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
+            How GENESIS works — evidence-based, AI-augmented, and built for learning.
           </p>
         </div>
+
+        {/* Principles */}
+        <section className="mb-16">
+          <h2 className="font-heading font-semibold text-2xl text-text-primary mb-6">Core Principles</h2>
+          <div className="space-y-4">
+            {[
+              {
+                title: 'Evidence-Based Foundation',
+                desc: 'All medical content in GENESIS is grounded in established clinical knowledge — textbook anatomy, peer-reviewed pathophysiology, FDA-approved pharmacology, and WHO-recognized disease classifications. Our baseline data reflects current medical consensus.',
+              },
+              {
+                title: 'AI-Augmented Analysis',
+                desc: "When OpenAI's GPT-4o is available, GENESIS uses it to provide real-time analysis of diseases, drug interactions, forensic cases, and holistic approaches. The AI synthesizes from its training data spanning medical literature, clinical guidelines, and research papers.",
+              },
+              {
+                title: 'Educational First',
+                desc: 'Every feature in GENESIS is designed to teach. The platform uses progressive disclosure — starting with high-level summaries and allowing users to drill into detailed pathophysiology, staging, mechanisms, and treatments at their own pace.',
+              },
+            ].map((p) => (
+              <div key={p.title} className="bg-bg-card border border-white/5 rounded-xl p-6">
+                <h3 className="font-heading font-semibold text-lg text-genesis-cyan mb-2">{p.title}</h3>
+                <p className="text-text-secondary text-sm leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How Each Module Works */}
+        <section className="mb-16">
+          <h2 className="font-heading font-semibold text-2xl text-text-primary mb-6">How Each Module Works</h2>
+          <div className="space-y-6">
+            {[
+              {
+                module: 'ATLAS',
+                color: '#00E5FF',
+                method: "Body part data is curated from standard anatomical references (Gray's Anatomy, Netter's). Each organ entry includes system classification, core functions, common pathologies, and anatomical relationships. The interactive model uses a simplified body map for navigation.",
+              },
+              {
+                module: 'PATHOLOGY',
+                color: '#FF00E5',
+                method: 'Disease analysis combines a curated database of common conditions with GPT-4o for real-time queries. Each analysis provides affected body systems, pathophysiology narrative, disease staging, current standard-of-care treatments, and experimental therapies from clinical trial pipelines.',
+              },
+              {
+                module: 'LAB',
+                color: '#FFD700',
+                method: 'Drug simulation uses AI to predict pharmacological interactions based on known mechanisms of action, receptor affinities, and metabolic pathways. The Mastermind game uses curated condition-to-treatment mappings from clinical pharmacology guidelines. Hypothesis evaluation assesses plausibility against known biochemical principles.',
+              },
+              {
+                module: 'LEARN',
+                color: '#00FF94',
+                method: 'Quiz content is authored from medical education standards (USMLE Step 1 level material). Questions span anatomy, physiology, pathology, and pharmacology with detailed explanations for each answer. Designed for reinforcement learning through active recall.',
+              },
+              {
+                module: 'FORENSICS',
+                color: '#FF3366',
+                method: 'Forensic analysis follows the standard medicolegal autopsy framework: cause of death, manner of death, time estimation, toxicology screening, trauma assessment, and investigative recommendations. AI-generated cases follow realistic forensic pathology patterns.',
+              },
+              {
+                module: 'HOLISTIC',
+                color: '#9945FF',
+                method: 'Holistic approaches are drawn from Traditional Chinese Medicine (TCM), Ayurvedic medicine, Western herbalism, and naturopathic principles. Each recommendation includes an evidence level rating (1-5) based on available clinical research, along with safety warnings and interaction considerations.',
+              },
+              {
+                module: 'THERAPY',
+                color: '#0066FF',
+                method: 'Sound and frequency recommendations are based on brainwave entrainment research (alpha, beta, theta, delta waves), Solfeggio frequencies from sound healing traditions, and breathing physiology. Color therapy draws from chromotherapy research and photobiology. Evidence quality varies by modality.',
+              },
+            ].map((m) => (
+              <div key={m.module} className="bg-bg-surface border border-white/5 rounded-xl p-6">
+                <h3 className="font-heading font-semibold text-sm uppercase tracking-wider mb-3" style={{ color: m.color }}>
+                  {m.module}
+                </h3>
+                <p className="text-text-muted text-sm leading-relaxed">{m.method}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Data Sources */}
-        <div className="rounded-2xl border border-white/8 bg-bg-card/60 p-8 mb-8">
-          <h2 className="font-heading font-bold text-xl text-genesis-magenta glow-magenta mb-4">Data Sources</h2>
-          <p className="text-text-secondary text-sm leading-relaxed mb-4">
-            GENESIS draws from a range of publicly available medical and scientific sources:
-          </p>
-          <ul className="space-y-2">
-            {[
-              'PubMed and PubMed Central (NIH) — peer-reviewed medical literature',
-              'World Health Organization (WHO) — disease classifications and epidemiology',
-              'FDA drug databases — approved compounds, mechanisms, interactions',
-              'Medical textbooks and curricula — structured anatomical and physiological knowledge',
-              'Cochrane Reviews — systematic reviews of treatment evidence',
-              'National Library of Medicine — comprehensive medical reference data',
-              'Open-access anatomy and physiology datasets',
-            ].map((source, i) => (
-              <li key={i} className="text-text-muted text-sm flex items-start gap-2">
-                <span className="text-genesis-magenta mt-0.5 flex-shrink-0">&bull;</span>
-                {source}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Evidence Rating System */}
-        <div className="rounded-2xl border border-white/8 bg-bg-card/60 p-8 mb-8">
-          <h2 className="font-heading font-bold text-xl text-genesis-gold glow-gold mb-4">Evidence Rating System</h2>
-          <p className="text-text-secondary text-sm leading-relaxed mb-6">
-            Throughout GENESIS, you will see evidence ratings displayed as filled circles (1-5). Here is what each level means:
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 font-heading font-semibold text-text-secondary text-xs uppercase tracking-wider">Rating</th>
-                  <th className="text-left py-3 px-4 font-heading font-semibold text-text-secondary text-xs uppercase tracking-wider">Level</th>
-                  <th className="text-left py-3 px-4 font-heading font-semibold text-text-secondary text-xs uppercase tracking-wider">Description</th>
-                  <th className="text-left py-3 px-4 font-heading font-semibold text-text-secondary text-xs uppercase tracking-wider">Example</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { rating: 1, level: 'Anecdotal', desc: 'Based primarily on traditional use, case reports, or limited preliminary studies. Insufficient peer-reviewed evidence.', example: 'Crystal healing, homeopathy' },
-                  { rating: 2, level: 'Preliminary', desc: 'Some promising small studies or pilot trials. Mechanism plausible but not well-established. More research needed.', example: 'Grounding/earthing, some herbal remedies' },
-                  { rating: 3, level: 'Moderate', desc: 'Multiple studies with generally positive results. Mechanism partially understood. Some systematic reviews available.', example: 'Acupuncture for pain, Ayurvedic herbs' },
-                  { rating: 4, level: 'Strong', desc: 'Substantial body of peer-reviewed research. Well-understood mechanisms. Systematic reviews and meta-analyses support efficacy.', example: 'Red light therapy, meditation, yoga' },
-                  { rating: 5, level: 'Robust', desc: 'Extensive clinical evidence. Well-established mechanisms. Widely accepted in evidence-based medicine with strong systematic review support.', example: 'Meditation for stress, CBT, established pharmacology' },
-                ].map((row) => (
-                  <tr key={row.rating} className="border-b border-white/5">
-                    <td className="py-3 px-4">
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <div
-                            key={i}
-                            className={`w-3 h-3 rounded-full border ${
-                              i < row.rating ? 'bg-genesis-gold border-genesis-gold/60' : 'bg-transparent border-white/15'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-heading font-semibold text-text-primary text-xs">{row.level}</td>
-                    <td className="py-3 px-4 text-text-muted text-xs leading-relaxed">{row.desc}</td>
-                    <td className="py-3 px-4 text-text-muted text-xs italic">{row.example}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <section className="mb-16">
+          <div className="bg-bg-card border border-white/5 rounded-2xl p-8">
+            <h2 className="font-heading font-semibold text-2xl text-text-primary mb-4">Data Sources &amp; Limitations</h2>
+            <div className="space-y-4 text-text-secondary text-sm leading-relaxed">
+              <p>
+                <strong className="text-text-primary">AI Model:</strong> GENESIS uses OpenAI&apos;s GPT-4o (when available) for real-time medical analysis. GPT-4o was trained on a broad corpus of medical literature, clinical guidelines, and biomedical research. However, its knowledge has a training cutoff and may not reflect the most recent publications or guideline updates.
+              </p>
+              <p>
+                <strong className="text-text-primary">Curated Data:</strong> Demo/fallback content is authored by the GENESIS team based on standard medical references including Harrison&apos;s Principles of Internal Medicine, Robbins Pathologic Basis of Disease, Goodman &amp; Gilman&apos;s Pharmacological Basis of Therapeutics, and current FDA/WHO guidelines.
+              </p>
+              <p>
+                <strong className="text-text-primary">Limitations:</strong> AI-generated content may contain inaccuracies. Medical knowledge evolves rapidly — treatment guidelines, drug approvals, and clinical evidence change regularly. GENESIS should be used as an educational starting point, not as a definitive clinical reference.
+              </p>
+              <p>
+                <strong className="text-text-primary">Holistic &amp; Therapy Modules:</strong> These modules include approaches from non-Western and complementary medicine traditions. Evidence levels vary significantly. Some approaches have robust clinical trial support; others are based on traditional use with limited controlled studies.
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Limitations */}
-        <div className="rounded-2xl border border-genesis-red/20 bg-genesis-red/5 p-8">
-          <h2 className="font-heading font-bold text-xl text-genesis-red mb-4">Limitations & Disclaimers</h2>
-          <ul className="space-y-3">
-            {[
-              'GENESIS is an educational platform. It does not provide medical advice, diagnosis, or treatment recommendations.',
-              'Simulations are simplified models of complex biological systems. Real human biology involves interactions that no simulation can fully capture.',
-              'Drug interaction simulations are based on known pharmacological data but cannot account for individual genetic variation, comorbidities, or real-time physiological states.',
-              'Evidence ratings are based on the state of published research as of early 2026 and may not reflect the most current findings.',
-              'Holistic and alternative medicine content is presented for educational exploration. Evidence ratings reflect scientific research, not lived experience or cultural significance.',
-              'Always consult qualified healthcare professionals for medical decisions. GENESIS is a learning tool, not a clinical tool.',
-            ].map((item, i) => (
-              <li key={i} className="text-text-muted text-sm flex items-start gap-2">
-                <span className="text-genesis-red mt-0.5 flex-shrink-0">&bull;</span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+        {/* Disclaimer */}
+        <section>
+          <div className="bg-genesis-red/5 border border-genesis-red/20 rounded-2xl p-8 text-center">
+            <h2 className="font-heading font-semibold text-xl text-genesis-red mb-3">Medical Disclaimer</h2>
+            <p className="text-text-secondary text-sm leading-relaxed max-w-2xl mx-auto">
+              GENESIS is an educational and exploratory platform designed for learning purposes only.
+              It does not provide medical advice, diagnosis, or treatment recommendations. The
+              information presented should not be used as a substitute for professional medical
+              consultation. Always seek the advice of a qualified healthcare provider with any
+              questions regarding a medical condition or treatment.
+            </p>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
