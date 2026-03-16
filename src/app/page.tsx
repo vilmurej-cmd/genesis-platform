@@ -433,6 +433,122 @@ const USE_CASES = [
 ];
 
 /* ══════════════════════════════════════════════════════════════
+   DID YOU KNOW? — Rotating human body facts
+   ══════════════════════════════════════════════════════════════ */
+const BODY_FACTS = [
+  { fact: 'Your body produces 25 million new cells each second. Every 13 seconds, you produce more cells than there are people in the United States.', system: 'Cellular', color: '#00FF94' },
+  { fact: 'Laid end to end, your blood vessels would circle the Earth 2.5 times — a network over 100,000 km long.', system: 'Cardiovascular', color: '#FF3366' },
+  { fact: 'Your brain generates enough electricity to power a small light bulb. It uses 20% of your total oxygen despite being only 2% of your body weight.', system: 'Nervous', color: '#FFD700' },
+  { fact: 'Stomach acid (HCl) is strong enough to dissolve metal. Your stomach lining replaces itself every 3-4 days to survive its own acid.', system: 'Digestive', color: '#FF9933' },
+  { fact: 'Human bone is stronger than steel pound-for-pound. A cubic inch of bone can bear a load of 19,000 lbs — roughly the weight of 5 pickup trucks.', system: 'Skeletal', color: '#E8DCC8' },
+  { fact: 'Your nose can detect over 1 trillion distinct scents. The olfactory system is the only sense that bypasses the thalamus and connects directly to the limbic system.', system: 'Nervous', color: '#FFD700' },
+  { fact: 'DNA in a single human cell stretches about 6 feet. If you uncoiled all the DNA in your body, it would stretch to Pluto and back — 17 times.', system: 'Cellular', color: '#00E5FF' },
+  { fact: 'Your heart beats approximately 100,000 times per day, pumping 2,000 gallons of blood. Over a lifetime, it beats more than 2.5 billion times.', system: 'Cardiovascular', color: '#FF3366' },
+  { fact: 'The human body contains enough iron to make a 3-inch nail, enough sulfur to kill all the fleas on a dog, and enough carbon to make 900 pencils.', system: 'Chemistry', color: '#9945FF' },
+  { fact: 'Your lungs have a surface area roughly equal to a tennis court. This massive area allows for rapid gas exchange — you breathe about 20,000 times a day.', system: 'Respiratory', color: '#66CCFF' },
+];
+
+function BodyFactCard() {
+  const [currentFact, setCurrentFact] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentFact(prev => (prev + 1) % BODY_FACTS.length);
+        setIsTransitioning(false);
+      }, 300);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fact = BODY_FACTS[currentFact];
+
+  return (
+    <div className="rounded-2xl border border-white/8 bg-bg-card/60 backdrop-blur-sm overflow-hidden">
+      <div className="p-6 sm:p-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Dna className="w-5 h-5 text-genesis-cyan" />
+          <span className="font-heading font-bold text-sm text-genesis-cyan tracking-wider">DID YOU KNOW?</span>
+        </div>
+        <div
+          className="transition-all duration-300"
+          style={{
+            opacity: isTransitioning ? 0 : 1,
+            transform: isTransitioning ? 'translateY(8px)' : 'translateY(0)',
+          }}
+        >
+          <p className="text-text-primary text-base sm:text-lg leading-relaxed mb-4">{fact.fact}</p>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: fact.color }} />
+            <span className="text-xs font-mono text-text-muted">{fact.system} System</span>
+          </div>
+        </div>
+        {/* Progress dots */}
+        <div className="flex gap-1 mt-5">
+          {BODY_FACTS.map((_, i) => (
+            <div
+              key={i}
+              className="h-1 rounded-full transition-all duration-300"
+              style={{
+                width: i === currentFact ? 20 : 6,
+                backgroundColor: i === currentFact ? '#00E5FF' : 'rgba(255,255,255,0.1)',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE VITALS — Animated body statistics dashboard
+   ══════════════════════════════════════════════════════════════ */
+function LiveVitals() {
+  const [heartRate, setHeartRate] = useState(72);
+  const [breathRate, setBreathRate] = useState(16);
+  const [o2, setO2] = useState(98);
+  const [temp, setTemp] = useState(98.6);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeartRate(70 + Math.floor(Math.random() * 8));
+      setBreathRate(14 + Math.floor(Math.random() * 5));
+      setO2(97 + Math.floor(Math.random() * 3));
+      setTemp(+(98.2 + Math.random() * 0.8).toFixed(1));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const vitals = [
+    { label: 'Heart Rate', value: `${heartRate}`, unit: 'BPM', color: '#FF3366', icon: '♥' },
+    { label: 'Respiration', value: `${breathRate}`, unit: '/min', color: '#66CCFF', icon: '〰' },
+    { label: 'O₂ Sat', value: `${o2}`, unit: '%', color: '#00FF94', icon: '◉' },
+    { label: 'Core Temp', value: `${temp}`, unit: '°F', color: '#FFD700', icon: '◆' },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {vitals.map(v => (
+        <div
+          key={v.label}
+          className="rounded-xl border border-white/5 bg-bg-card/40 p-4 text-center transition-all"
+        >
+          <div className="text-lg mb-1" style={{ color: v.color }}>{v.icon}</div>
+          <div className="font-mono text-2xl font-bold text-text-primary transition-all">
+            {v.value}
+            <span className="text-xs text-text-muted ml-1">{v.unit}</span>
+          </div>
+          <p className="text-[10px] text-text-muted mt-1 font-heading">{v.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    DEPTH CARD — glows on scroll
    ══════════════════════════════════════════════════════════════ */
 function DepthCard({ level, desc, color, index }: { level: string; desc: string; color: string; index: number }) {
@@ -687,6 +803,20 @@ export default function HomePage() {
           <Volume2 className="w-4 h-4 text-genesis-blue" />
           Real Solfeggio Frequencies &amp; Binaural Beats
         </p>
+      </section>
+
+      {/* ── Live Vitals Dashboard ──────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="text-center mb-6">
+          <p className="text-[10px] font-mono text-text-muted uppercase tracking-widest mb-1">Real-Time Simulation</p>
+          <h3 className="font-heading font-semibold text-lg text-text-primary">Healthy Adult Vitals</h3>
+        </div>
+        <LiveVitals />
+      </section>
+
+      {/* ── Did You Know? ──────────────────────────────────── */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <BodyFactCard />
       </section>
 
       {/* ── How Deep Can You Go? ───────────────────────────── */}
