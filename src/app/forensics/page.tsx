@@ -18,6 +18,13 @@ import {
   Loader2,
   Tag,
   Crosshair,
+  MapPin,
+  Fingerprint,
+  FlaskConical,
+  ChevronDown,
+  ChevronUp,
+  Bookmark,
+  Scale,
 } from 'lucide-react';
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -46,6 +53,8 @@ interface ForensicCase {
   id: string;
   title: string;
   scenario: string;
+  caseNumber: string;
+  difficulty: 'Standard' | 'Complex' | 'Expert';
   evidence: Evidence[];
   postMortemFindings: string[];
   timeline: TimelineEvent[];
@@ -56,7 +65,9 @@ interface ForensicCase {
 const CASES: ForensicCase[] = [
   {
     id: 'river-remains',
-    title: 'Unidentified remains found in river',
+    title: 'The River Remains',
+    caseNumber: 'GFP-2026-001',
+    difficulty: 'Complex',
     scenario:
       'A jogger discovered partially submerged human remains along the bank of the Cedar River at approximately 0630 hours. The body was lodged against a fallen tree branch approximately 200 meters downstream from a pedestrian bridge. Weather conditions for the past 72 hours included heavy rainfall and temperatures between 2-8\u00B0C. No identification was found on the body. The victim appears to be male, estimated age 30-45.',
     evidence: [
@@ -107,7 +118,9 @@ const CASES: ForensicCase[] = [
   },
   {
     id: 'sudden-death',
-    title: 'Sudden death of healthy 35-year-old',
+    title: 'The Silent Collapse',
+    caseNumber: 'GFP-2026-002',
+    difficulty: 'Standard',
     scenario:
       'A 35-year-old male was found unresponsive by his wife at 0715 hours in their bedroom. He had gone to bed the previous evening at approximately 2300 hours after returning from a gym session, reportedly feeling well. No known medical conditions, no prescribed medications. He was a recreational marathon runner with a recent physical showing no abnormalities. Wife reports he had been under significant work stress and was consuming 6-8 cups of coffee daily. EMS pronounced death at scene.',
     evidence: [
@@ -161,7 +174,9 @@ const CASES: ForensicCase[] = [
   },
   {
     id: 'car-accident',
-    title: 'Multiple trauma victim \u2014 car accident',
+    title: 'The Highway Wreck',
+    caseNumber: 'GFP-2026-003',
+    difficulty: 'Standard',
     scenario:
       'A 28-year-old female driver was extracted from a single-vehicle collision at 0215 hours on Highway 9. Vehicle left roadway at high speed, struck a concrete barrier, and rolled twice before coming to rest inverted. Airbags deployed. Victim was wearing a seatbelt. Pronounced dead at the scene by first responders. No passengers. Road conditions: dry, clear night. Skid marks measured at 45 meters. Vehicle: 2024 sedan, no mechanical defects found on preliminary inspection.',
     evidence: [
@@ -192,7 +207,7 @@ const CASES: ForensicCase[] = [
       { time: '0231', event: 'First responders arrive, pronounce death at scene', significance: 'critical' },
     ],
     analysis: {
-      probableCause: 'Multiple blunt force traumatic injuries sustained in high-speed motor vehicle collision. Immediately fatal injuries include traumatic aortic transection and C2 vertebral fracture with spinal cord transection. Any one of these injuries would be independently fatal.',
+      probableCause: 'Multiple blunt force traumatic injuries sustained in high-speed motor vehicle collision. Immediately fatal injuries include traumatic aortic transection and C2 vertebral fracture with spinal cord transection.',
       mannerOfDeath: 'Accident',
       timeOfDeathEstimate: 'Death was instantaneous or within seconds of primary impact. The combination of aortic transection, cervical cord transection, and basilar skull fracture would cause immediate cessation of cardiac and neurological function.',
       toxicology: [
@@ -218,7 +233,9 @@ const CASES: ForensicCase[] = [
   },
   {
     id: 'poisoning',
-    title: 'Suspected poisoning at dinner party',
+    title: 'The Poisoned Philanthropist',
+    caseNumber: 'GFP-2026-004',
+    difficulty: 'Expert',
     scenario:
       "During a dinner party at a private residence with 8 guests, a 52-year-old male host collapsed approximately 90 minutes after the meal began. Witnesses describe sudden onset of profuse sweating, excessive salivation, vomiting, and muscle fasciculations before losing consciousness. The victim had prepared the meal himself, which featured wild mushrooms he had personally foraged that afternoon. Other guests consumed different portions of the same meal \u2014 two others developed mild gastrointestinal symptoms. Victim transported to hospital, pronounced dead 4 hours after symptom onset despite aggressive treatment.",
     evidence: [
@@ -249,13 +266,13 @@ const CASES: ForensicCase[] = [
       { time: '0050', event: 'Victim pronounced dead \u2014 multi-organ failure despite atropine and supportive care', significance: 'critical' },
     ],
     analysis: {
-      probableCause: 'Acute amatoxin poisoning from ingestion of Amanita phalloides (death cap mushroom), with concurrent organophosphate toxicity (suspected contamination of foraging site near agricultural land). Amatoxins caused fulminant hepatic failure. Organophosphate co-exposure explains the unusually rapid cholinergic crisis (SLUDGE syndrome) preceding the expected 6-12 hour amatoxin latency period.',
+      probableCause: 'Acute amatoxin poisoning from ingestion of Amanita phalloides (death cap mushroom), with concurrent organophosphate toxicity (suspected contamination of foraging site near agricultural land). Amatoxins caused fulminant hepatic failure. Organophosphate co-exposure explains the unusually rapid cholinergic crisis.',
       mannerOfDeath: 'Accident (pending investigation \u2014 manner may be revised if evidence of intentional ingestion emerges)',
-      timeOfDeathEstimate: 'Approximately 6 hours after ingestion of toxic mushrooms. Death occurred at 0050 hours, with ingestion at approximately 1900 hours. The rapid onset (90 minutes) of cholinergic symptoms is atypical for pure amatoxin poisoning and suggests a co-toxin.',
+      timeOfDeathEstimate: 'Approximately 6 hours after ingestion of toxic mushrooms. Death occurred at 0050 hours, with ingestion at approximately 1900 hours.',
       toxicology: [
         { substance: 'Alpha-amanitin', level: '82 ng/mL (urine)', significance: 'Markedly elevated \u2014 lethal threshold is ~0.1 mg/kg body weight. Confirms Amanita phalloides ingestion.' },
         { substance: 'Phalloidin', level: 'Detected (serum)', significance: 'Phallotoxin from Amanita \u2014 damages hepatocyte membranes, accelerates liver necrosis' },
-        { substance: 'Organophosphate metabolites', level: 'Diethyl phosphate detected', significance: 'Suggests exposure to organophosphate pesticide \u2014 explains cholinergic crisis and depressed cholinesterase' },
+        { substance: 'Organophosphate metabolites', level: 'Diethyl phosphate detected', significance: 'Suggests exposure to organophosphate pesticide \u2014 explains cholinergic crisis' },
         { substance: 'Ethanol', level: '0.04 g/dL', significance: 'Minimal \u2014 consistent with wine served at dinner, not contributory' },
       ],
       traumaAnalysis: [
@@ -265,11 +282,68 @@ const CASES: ForensicCase[] = [
         'Pattern consistent with voluntary oral consumption of poisonous material',
       ],
       additionalFindings: [
-        'Foraging site located adjacent to agricultural fields treated with organophosphate pesticides \u2014 mushrooms likely absorbed pesticide from contaminated soil',
-        'Remaining mushroom specimens confirmed as mixture of Amanita phalloides and edible Agaricus campestris \u2014 easily confused by amateur foragers',
+        'Foraging site located adjacent to agricultural fields treated with organophosphate pesticides',
+        'Remaining mushroom specimens confirmed as mixture of Amanita phalloides and edible Agaricus campestris',
         'Two other guests with mild symptoms consumed small portions \u2014 both recovered with supportive care',
         'Host had no formal mycology training \u2014 used a mobile phone app for mushroom identification',
         'No evidence of intentional poisoning \u2014 preliminary finding is accidental misidentification',
+      ],
+    },
+  },
+  {
+    id: 'locked-room',
+    title: 'The Locked Room',
+    caseNumber: 'GFP-2026-005',
+    difficulty: 'Expert',
+    scenario:
+      'A 44-year-old female was found deceased in her apartment by building management after co-workers reported she had not appeared at work for three days. The apartment was locked from the inside with a chain lock and deadbolt. All windows were secured from within. No signs of forced entry. The victim was found seated at her desk in the home office, slumped forward over her laptop. A half-consumed glass of red wine and an open bottle of prescription medication (alprazolam) were on the desk. A handwritten note was found beneath the keyboard.',
+    evidence: [
+      { label: 'Locked apartment', detail: 'Chain lock and deadbolt engaged from inside. No signs of forced entry at door or windows. Building has no other access points.', severity: 'high' },
+      { label: 'Handwritten note', detail: 'Contents describe feelings of hopelessness and apology to family members. Handwriting analysis confirms victim\'s handwriting.', severity: 'critical' },
+      { label: 'Medication bottle', detail: 'Alprazolam 2mg, prescribed 2 weeks prior. 30-count bottle, 22 tablets missing. Normal dosing would account for ~14 tablets.', severity: 'critical' },
+      { label: 'Red wine glass', detail: 'Half-consumed glass of Cabernet Sauvignon. Bottle 60% consumed. No unusual odor or residue.', severity: 'moderate' },
+      { label: 'Injection mark', detail: 'Single fresh venipuncture mark on left antecubital fossa, not consistent with routine blood draw. Surrounding ecchymosis.', severity: 'critical' },
+      { label: 'Browser history', detail: 'Laptop shows research on "painless methods" and lethal medication combinations over preceding 5 days', severity: 'critical' },
+    ],
+    postMortemFindings: [
+      'No external signs of trauma aside from single injection site on left arm',
+      'Mild pulmonary edema bilaterally',
+      'Gastric contents: red wine, partially dissolved tablet fragments',
+      'No petechial hemorrhages \u2014 no signs of asphyxia',
+      'Mild cerebral edema',
+      'Liver and kidneys grossly normal',
+      'No defensive injuries',
+    ],
+    timeline: [
+      { time: 'Day -5', event: 'Victim begins researching methods online (browser history)', significance: 'critical' },
+      { time: 'Day -3', event: 'Victim last seen leaving work at 1730 hours (security camera)', significance: 'notable' },
+      { time: 'Day -3 (est.)', event: 'Estimated time of death based on decomposition and environmental factors', significance: 'critical' },
+      { time: 'Day -2', event: 'Victim does not report to work \u2014 co-workers assume sick day', significance: 'routine' },
+      { time: 'Day -1', event: 'Co-worker calls victim\'s phone \u2014 goes to voicemail', significance: 'notable' },
+      { time: 'Day 0', event: 'Co-workers alert building management \u2014 body discovered at 1430 hours', significance: 'critical' },
+    ],
+    analysis: {
+      probableCause: 'Combined drug toxicity from self-administered alprazolam (oral overdose) potentiated by ethanol and intravenously administered potassium chloride. The benzodiazepine-alcohol combination caused respiratory depression and sedation, while potassium chloride caused fatal cardiac arrhythmia.',
+      mannerOfDeath: 'Suicide',
+      timeOfDeathEstimate: 'Approximately 72 hours prior to discovery (Day -3, evening hours) based on early decomposition changes, rigor mortis (resolved), and lividity pattern. Consistent with last seen alive on security camera.',
+      toxicology: [
+        { substance: 'Alprazolam', level: '0.8 mg/L (blood)', significance: 'Toxic range (therapeutic: 0.01-0.1 mg/L). Consistent with ingestion of approximately 8-10 tablets.' },
+        { substance: 'Ethanol', level: '0.11 g/dL', significance: 'Moderate \u2014 synergistic CNS depression with benzodiazepines' },
+        { substance: 'Potassium', level: '9.8 mEq/L (vitreous)', significance: 'Markedly elevated even accounting for post-mortem redistribution. Suggests exogenous potassium administration.' },
+      ],
+      traumaAnalysis: [
+        'Single injection site on left antecubital fossa with surrounding bruising \u2014 self-administered',
+        'No defensive injuries or signs of struggle',
+        'No ligature marks, petechiae, or other signs of external force',
+        'Findings entirely consistent with self-inflicted death',
+      ],
+      additionalFindings: [
+        'Handwritten note authenticated as victim\'s handwriting by forensic document examiner',
+        'Locked-room scenario consistent with victim acting alone',
+        'Internet research history corroborates premeditation',
+        'Medical records show recent diagnosis of treatment-resistant depression',
+        'Potassium chloride vial found in trash can \u2014 ordered online 10 days prior',
+        'Recommend notifying mental health organizations for case study documentation',
       ],
     },
   },
@@ -289,16 +363,27 @@ const significanceDot: Record<string, string> = {
   critical: 'bg-red-400',
 };
 
+const difficultyColor: Record<string, string> = {
+  Standard: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
+  Complex: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
+  Expert: 'text-red-400 bg-red-500/15 border-red-500/30',
+};
+
 /* ── Component ──────────────────────────────────────────── */
 export default function ForensicsPage() {
   const [selectedCase, setSelectedCase] = useState<ForensicCase | null>(null);
   const [customScenario, setCustomScenario] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [activeTab, setActiveTab] = useState<'evidence' | 'postmortem' | 'analysis' | 'timeline'>('evidence');
+  const [expandedEvidence, setExpandedEvidence] = useState<number | null>(null);
+  const [requestingTest, setRequestingTest] = useState(false);
+  const [additionalAnalysis, setAdditionalAnalysis] = useState<string | null>(null);
 
   const handleAnalyzeCase = (caseData: ForensicCase) => {
     setSelectedCase(caseData);
     setActiveTab('evidence');
+    setExpandedEvidence(null);
+    setAdditionalAnalysis(null);
   };
 
   const handleCustomAnalysis = async () => {
@@ -326,6 +411,38 @@ export default function ForensicsPage() {
     }
   };
 
+  const requestAdditionalTest = async () => {
+    if (!selectedCase || requestingTest) return;
+    setRequestingTest(true);
+    setAdditionalAnalysis(null);
+
+    try {
+      const res = await fetch('/api/forensics/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenario: `Based on this case: ${selectedCase.title} - ${selectedCase.scenario}. Provide additional forensic analysis, additional tests that should be run, and deeper investigation leads.`,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdditionalAnalysis(data.analysis?.probableCause || 'Additional analysis suggests reviewing environmental factors and conducting further toxicological screening for less common substances. Cross-reference DNA evidence with expanded databases. Consider consulting specialists in forensic entomology for more precise time-of-death estimation.');
+      }
+    } catch {
+      setAdditionalAnalysis('Additional analysis suggests reviewing environmental factors and conducting further toxicological screening for less common substances. Cross-reference DNA evidence with expanded databases. Consider consulting specialists in forensic entomology for more precise time-of-death estimation. Trace evidence (fibers, soil, pollen) should be analyzed for geographic origin.');
+    } finally {
+      setRequestingTest(false);
+    }
+  };
+
+  const mannerColor = (manner: string) => {
+    if (manner.includes('Homicide')) return '#FF3366';
+    if (manner.includes('Natural')) return '#00FF94';
+    if (manner.includes('Accident')) return '#FFD700';
+    if (manner.includes('Suicide')) return '#9945FF';
+    return '#0066FF';
+  };
+
   return (
     <div className="min-h-screen bg-bg-void text-text-primary font-body">
       {/* Header */}
@@ -341,15 +458,15 @@ export default function ForensicsPage() {
               </div>
               <div>
                 <h1 className="font-heading font-bold text-xl tracking-wide" style={{ color: '#FF3366' }}>
-                  FORENSICS
+                  FORENSIC PATHOLOGY
                 </h1>
-                <p className="text-xs text-text-muted">Forensic Pathology Mode</p>
+                <p className="text-xs text-text-muted">Case Investigation Mode</p>
               </div>
             </div>
           </div>
           {selectedCase && (
             <button
-              onClick={() => setSelectedCase(null)}
+              onClick={() => { setSelectedCase(null); setAdditionalAnalysis(null); }}
               className="px-4 py-2 text-sm rounded-lg border border-red-500/30 text-genesis-red hover:bg-red-500/10 transition-colors"
             >
               New Case
@@ -360,10 +477,12 @@ export default function ForensicsPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!selectedCase ? (
-          /* ── Case Selection ─────────────────────────────── */
+          /* ── Case Selection — Evidence Board Style ─────── */
           <div className="space-y-8">
             {/* Custom Scenario */}
-            <div className="rounded-xl border border-red-500/20 bg-bg-surface p-6">
+            <div className="rounded-xl border border-red-500/20 bg-bg-surface p-6" style={{
+              backgroundImage: 'linear-gradient(135deg, rgba(255,51,102,0.03) 0%, transparent 50%)',
+            }}>
               <div className="flex items-center gap-3 mb-4">
                 <Search className="w-5 h-5 text-genesis-red" />
                 <h2 className="font-heading font-semibold text-lg">Custom Case Analysis</h2>
@@ -394,34 +513,66 @@ export default function ForensicsPage() {
               </div>
             </div>
 
-            {/* Pre-built Cases */}
+            {/* Pre-built Cases — Manila folder style */}
             <div>
               <h2 className="font-heading font-semibold text-lg mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-genesis-red" />
-                Pre-built Case Files
+                Case Files
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {CASES.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => handleAnalyzeCase(c)}
-                    className="group text-left rounded-xl border border-red-500/15 bg-bg-surface p-5 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+                    className="group text-left rounded-xl border border-red-500/15 overflow-hidden transition-all hover:border-red-500/40 hover:shadow-[0_0_20px_rgba(255,51,102,0.1)]"
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(255,51,102,0.04) 0%, rgba(10,14,26,0.9) 100%)',
+                    }}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                        <Shield className="w-4 h-4 text-genesis-red" />
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-genesis-red transition-colors" />
+                    {/* Manila folder tab */}
+                    <div className="flex items-center justify-between px-5 py-2.5 border-b border-red-500/10" style={{
+                      background: 'linear-gradient(90deg, rgba(255,51,102,0.08), rgba(255,51,102,0.02))',
+                    }}>
+                      <span className="font-mono text-[10px] text-genesis-red tracking-wider">{c.caseNumber}</span>
+                      <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full border ${difficultyColor[c.difficulty]}`}>
+                        {c.difficulty}
+                      </span>
                     </div>
-                    <h3 className="font-heading font-semibold text-text-primary mb-2">{c.title}</h3>
-                    <p className="text-sm text-text-secondary line-clamp-3">{c.scenario.slice(0, 180)}...</p>
-                    <div className="mt-3 flex items-center gap-3 text-xs text-text-muted">
-                      <span className="flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> {c.evidence.length} evidence items
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {c.timeline.length} events
-                      </span>
+
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-heading font-bold text-text-primary group-hover:text-genesis-red transition-colors">{c.title}</h3>
+                        <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-genesis-red transition-colors shrink-0 mt-1" />
+                      </div>
+                      <p className="text-sm text-text-secondary line-clamp-3 mb-4">{c.scenario.slice(0, 160)}...</p>
+
+                      {/* Evidence preview as pinned cards */}
+                      <div className="flex items-center gap-3 text-[11px] text-text-muted">
+                        <span className="flex items-center gap-1">
+                          <Fingerprint className="w-3 h-3 text-genesis-red/60" /> {c.evidence.length} evidence
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-genesis-red/60" /> {c.timeline.length} events
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <FlaskConical className="w-3 h-3 text-genesis-red/60" /> {c.analysis.toxicology.length} tox
+                        </span>
+                      </div>
+
+                      {/* Severity dots preview */}
+                      <div className="flex gap-1 mt-3">
+                        {c.evidence.map((ev, i) => (
+                          <div
+                            key={i}
+                            className="w-2 h-2 rounded-full"
+                            title={`${ev.label}: ${ev.severity}`}
+                            style={{
+                              backgroundColor: ev.severity === 'critical' ? '#FF3366' : ev.severity === 'high' ? '#FF9933' : ev.severity === 'moderate' ? '#FFD700' : '#00FF94',
+                              opacity: 0.7,
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -437,58 +588,126 @@ export default function ForensicsPage() {
             </div>
           </div>
         ) : (
-          /* ── Case Analysis View ─────────────────────────── */
+          /* ── Case Analysis — Evidence Board UI ─────────── */
           <div className="space-y-6">
-            {/* Case Header */}
-            <div className="rounded-xl border border-red-500/20 bg-bg-surface p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                <span className="text-xs font-mono text-genesis-red uppercase tracking-wider">Active Case File</span>
+            {/* Case File Header — Manila folder style */}
+            <div className="rounded-xl border border-red-500/20 overflow-hidden" style={{
+              background: 'linear-gradient(135deg, rgba(255,51,102,0.05) 0%, rgba(10,14,26,0.9) 100%)',
+            }}>
+              <div className="flex items-center justify-between px-6 py-2.5 border-b border-red-500/10" style={{
+                background: 'linear-gradient(90deg, rgba(255,51,102,0.1), rgba(255,51,102,0.03))',
+              }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                  <span className="font-mono text-xs text-genesis-red uppercase tracking-wider">Active Case File</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedCase.caseNumber && (
+                    <span className="font-mono text-[10px] text-text-muted">{selectedCase.caseNumber}</span>
+                  )}
+                  {selectedCase.difficulty && (
+                    <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full border ${difficultyColor[selectedCase.difficulty]}`}>
+                      {selectedCase.difficulty}
+                    </span>
+                  )}
+                </div>
               </div>
-              <h2 className="font-heading font-bold text-2xl mb-3" style={{ color: '#FF3366' }}>
-                {selectedCase.title}
-              </h2>
-              <p className="text-text-secondary text-sm leading-relaxed">{selectedCase.scenario}</p>
+              <div className="p-6">
+                <h2 className="font-heading font-bold text-2xl mb-3" style={{ color: '#FF3366' }}>
+                  {selectedCase.title}
+                </h2>
+                <p className="text-text-secondary text-sm leading-relaxed">{selectedCase.scenario}</p>
+              </div>
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-1 bg-bg-surface rounded-lg p-1 border border-red-500/10">
-              {(['evidence', 'postmortem', 'timeline', 'analysis'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-heading font-medium transition-all capitalize ${
-                    activeTab === tab
-                      ? 'bg-red-500/15 text-genesis-red border border-red-500/30'
-                      : 'text-text-muted hover:text-text-secondary border border-transparent'
-                  }`}
-                >
-                  {tab === 'postmortem' ? 'Post-Mortem' : tab}
-                </button>
-              ))}
+            <div className="flex gap-1 bg-bg-surface rounded-xl p-1 border border-red-500/10">
+              {(['evidence', 'postmortem', 'timeline', 'analysis'] as const).map((tab) => {
+                const icons = { evidence: Eye, postmortem: Activity, timeline: Clock, analysis: Scale };
+                const Icon = icons[tab];
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-heading font-medium transition-all flex items-center justify-center gap-2 ${
+                      activeTab === tab
+                        ? 'bg-red-500/15 text-genesis-red border border-red-500/30'
+                        : 'text-text-muted hover:text-text-secondary border border-transparent'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{tab === 'postmortem' ? 'Post-Mortem' : tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Tab Content */}
             {activeTab === 'evidence' && (
-              <div className="space-y-3">
-                <h3 className="font-heading font-semibold flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-genesis-red" /> Physical Evidence ({selectedCase.evidence.length} items)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {selectedCase.evidence.map((ev, i) => (
-                    <div key={i} className="rounded-lg border border-red-500/10 bg-bg-surface p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-heading font-semibold text-sm text-text-primary">{ev.label}</h4>
-                        <span
-                          className={`text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border ${severityColor[ev.severity]}`}
-                        >
-                          {ev.severity}
-                        </span>
-                      </div>
-                      <p className="text-sm text-text-secondary leading-relaxed">{ev.detail}</p>
-                    </div>
-                  ))}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading font-semibold flex items-center gap-2">
+                    <Fingerprint className="w-4 h-4 text-genesis-red" /> Physical Evidence ({selectedCase.evidence.length} items)
+                  </h3>
+                  <button
+                    onClick={requestAdditionalTest}
+                    disabled={requestingTest}
+                    className="px-4 py-2 rounded-lg text-xs font-heading font-semibold flex items-center gap-2 transition-all border border-red-500/30 text-genesis-red hover:bg-red-500/10 disabled:opacity-40"
+                  >
+                    {requestingTest ? <Loader2 className="w-3 h-3 animate-spin" /> : <FlaskConical className="w-3 h-3" />}
+                    Request Additional Test
+                  </button>
                 </div>
+
+                {/* Evidence cards — pinned card style */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedCase.evidence.map((ev, i) => {
+                    const isExpanded = expandedEvidence === i;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setExpandedEvidence(isExpanded ? null : i)}
+                        className="text-left rounded-xl border border-red-500/10 bg-bg-surface transition-all hover:border-red-500/20"
+                        style={{
+                          boxShadow: isExpanded ? '0 0 15px rgba(255,51,102,0.1)' : 'none',
+                        }}
+                      >
+                        {/* Pin */}
+                        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-genesis-red/40" />
+                        <div className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Bookmark className="w-3.5 h-3.5 text-genesis-red/60" />
+                              <h4 className="font-heading font-semibold text-sm text-text-primary">{ev.label}</h4>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border ${severityColor[ev.severity]}`}
+                              >
+                                {ev.severity}
+                              </span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3 text-text-muted" /> : <ChevronDown className="w-3 h-3 text-text-muted" />}
+                            </div>
+                          </div>
+                          <p className={`text-sm text-text-secondary leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                            {ev.detail}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Additional AI Analysis */}
+                {additionalAnalysis && (
+                  <div className="rounded-xl border border-genesis-cyan/20 bg-genesis-cyan/5 p-5">
+                    <h4 className="font-heading font-semibold text-sm text-genesis-cyan flex items-center gap-2 mb-3">
+                      <FlaskConical className="w-4 h-4" />
+                      Additional Analysis
+                    </h4>
+                    <p className="text-sm text-text-secondary leading-relaxed">{additionalAnalysis}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -515,13 +734,14 @@ export default function ForensicsPage() {
                 <h3 className="font-heading font-semibold flex items-center gap-2">
                   <Clock className="w-4 h-4 text-genesis-red" /> Timeline of Events
                 </h3>
+                {/* Horizontal timeline strip */}
                 <div className="relative">
                   <div className="absolute left-[72px] top-0 bottom-0 w-px bg-red-500/20" />
                   <div className="space-y-1">
                     {selectedCase.timeline.map((event, i) => (
                       <div
                         key={i}
-                        className={`relative flex items-start gap-4 py-3 px-4 rounded-lg border border-transparent ${
+                        className={`relative flex items-start gap-4 py-3 px-4 rounded-lg border border-transparent transition-all ${
                           event.significance === 'critical' ? 'bg-red-500/5 border-red-500/10' : ''
                         }`}
                       >
@@ -536,6 +756,11 @@ export default function ForensicsPage() {
                           />
                         </div>
                         <p className="text-sm text-text-secondary leading-relaxed flex-1">{event.event}</p>
+                        {event.significance === 'critical' && (
+                          <span className="text-[9px] font-mono text-genesis-red uppercase tracking-wider shrink-0">
+                            CRITICAL
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -563,7 +788,7 @@ export default function ForensicsPage() {
                       <Shield className="w-4 h-4 text-genesis-red" />
                       <h4 className="font-heading font-semibold text-sm">Manner of Death</h4>
                     </div>
-                    <p className="text-lg font-heading font-bold" style={{ color: '#FF3366' }}>
+                    <p className="text-xl font-heading font-bold" style={{ color: mannerColor(selectedCase.analysis.mannerOfDeath) }}>
                       {selectedCase.analysis.mannerOfDeath}
                     </p>
                   </div>
