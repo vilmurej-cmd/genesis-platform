@@ -5,20 +5,25 @@ import { useGLTF, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGenesisStore, type SystemId } from '../store';
 
-/* ─── Mesh-name → body-system classification ────────────────────────── */
+/* ─── Root-group-name → body-system classification ──────────────────── */
+/* AnatomyTOOL models organize meshes under named root groups like       */
+/* "Arm - muscles", "Bones", "Nerves", etc. We classify based on the    */
+/* ROOT GROUP name, not individual mesh names.                           */
 
-const SYSTEM_PATTERNS: [SystemId, RegExp][] = [
-  ['muscular', /muscle|muscul|bicep|tricep|deltoid|pector|quadricep|hamstring|gastrocnem|soleus|tendon|ligament|fascia|glute|rectus|oblique|trapez|latissimus|rhomboid|serratus|teres|sartorius|gracilis|adduct|abduct|flexor|extensor|pronator|supinator|brachialis|plantaris|tibialis|peroneus|psoas|inteross/i],
-  ['nervous', /nerve|nerv|neural|cerebr|brain|spinal.?cord|ganglion|plexus|sciatic|median|ulnar.?n|radial.?n|femoral.?n|tibial.?n|vagus|optic|trigeminal/i],
-  ['circulatory', /artery|arter|vein|vena|vessel|aorta|capillar|coronary|carotid|jugular|subclavian|brachial.?a|radial.?a|ulnar.?a|iliac|femoral.?a|popliteal|saphenous|portal|pulmonary/i],
-  ['lymphatic', /lymph|node/i],
-];
+type MeshClass = SystemId | 'hide';
 
-function classifyMesh(name: string): SystemId | null {
-  for (const [system, pattern] of SYSTEM_PATTERNS) {
-    if (pattern.test(name)) return system;
-  }
-  return null;
+function classifyRootGroup(groupName: string): MeshClass {
+  const n = groupName.toLowerCase();
+  if (n.includes('overlay')) return 'hide';
+  if (n.includes('muscle')) return 'muscular';
+  if (n.includes('nerve')) return 'nervous';
+  if (n.includes('arter')) return 'circulatory';
+  if (n.includes('vein')) return 'circulatory';
+  if (n.includes('fascia')) return 'muscular';
+  if (n.includes('bone') || n.includes('cartilage')) return 'skeletal';
+  if (n.includes('ligament') || n.includes('capsule')) return 'skeletal';
+  if (n.includes('bursae') || n.includes('synovia')) return 'skeletal';
+  return 'skeletal';
 }
 
 /* ─── Material helpers ──────────────────────────────────────────────── */
@@ -41,58 +46,104 @@ function applyMeshState(mesh: THREE.Mesh, visible: boolean, xray: boolean) {
   }
 }
 
-/* ─── Single model layer (suspends until GLB is loaded) ─────────────── */
+/* ─── Skeleton layer (always loaded — bones only) ───────────────────── */
 
-function ModelLayer({
-  path,
-  defaultSystem,
+function SkeletonLayer({
   activeSystems,
   xrayMode,
   onBounds,
 }: {
-  path: string;
-  defaultSystem: SystemId;
   activeSystems: Set<SystemId>;
   xrayMode: boolean;
-  onBounds?: (box: THREE.Box3) => void;
+  onBounds: (box: THREE.Box3) => void;
 }) {
-  const { scene } = useGLTF(path);
+  const { scene } = useGLTF('/models/anatomy/skeleton/overview-skeleton.glb');
 
-  const { cloned, systemMap } = useMemo(() => {
+  const cloned = useMemo(() => {
     const c = scene.clone(true);
-    const map = new Map<string, SystemId>();
-
     c.traverse((child) => {
       if (!(child as THREE.Mesh).isMesh) return;
       const mesh = child as THREE.Mesh;
-      // Isolate materials so per-instance mutations don't leak
       mesh.material = Array.isArray(mesh.material)
         ? mesh.material.map((m) => m.clone())
         : mesh.material.clone();
-
-      const system = classifyMesh(child.name) ?? defaultSystem;
-      map.set(child.uuid, system);
-      console.log(`[GENESIS GLB] ${path.split('/').pop()} → "${child.name}" → ${system}`);
     });
+    return c;
+  }, [scene]);
 
-    return { cloned: c, systemMap: map };
-  }, [scene, path, defaultSystem]);
-
-  // Report bounding box to parent (for skeleton alignment)
+  // Report bounds for global transform calculation
   useEffect(() => {
-    if (onBounds) {
-      onBounds(new THREE.Box3().setFromObject(cloned));
-    }
+    onBounds(new THREE.Box3().setFromObject(cloned));
   }, [cloned, onBounds]);
 
-  // Toggle visibility + X-ray per active systems
+  // All skeleton meshes are controlled by the "skeletal" toggle
+  useEffect(() => {
+    const visible = activeSystems.has('skeletal');
+    cloned.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        applyMeshState(child as THREE.Mesh, visible, xrayMode);
+      }
+    });
+  }, [cloned, activeSystems, xrayMode]);
+
+  return <primitive object={cloned} />;
+}
+
+/* ─── Regional detail layer (soft tissue — bones hidden) ────────────── */
+/* Loads a regional model (upper-limb, lower-limb, hand) and hides all  */
+/* bone/cartilage groups to avoid overlapping with the skeleton layer.   */
+/* Only shows soft tissue: muscles, nerves, arteries, veins, fascia.    */
+
+function RegionalLayer({
+  path,
+  activeSystems,
+  xrayMode,
+}: {
+  path: string;
+  activeSystems: Set<SystemId>;
+  xrayMode: boolean;
+}) {
+  const { scene } = useGLTF(path);
+
+  // Clone scene + classify each mesh by its root group ancestor
+  const { cloned, meshClassMap } = useMemo(() => {
+    const c = scene.clone(true);
+    const map = new Map<string, MeshClass>();
+
+    // Walk each root child group and classify all descendant meshes
+    for (const rootChild of c.children) {
+      const system = classifyRootGroup(rootChild.name);
+      console.log(`[GENESIS GLB] ${path.split('/').pop()} root group: "${rootChild.name}" → ${system}`);
+
+      rootChild.traverse((child) => {
+        if (!(child as THREE.Mesh).isMesh) return;
+        const mesh = child as THREE.Mesh;
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((m) => m.clone())
+          : mesh.material.clone();
+        map.set(child.uuid, system);
+      });
+    }
+
+    return { cloned: c, meshClassMap: map };
+  }, [scene, path]);
+
+  // Toggle visibility: bones are ALWAYS hidden (skeleton layer has them),
+  // soft tissue shown based on system toggles
   useEffect(() => {
     cloned.traverse((child) => {
       if (!(child as THREE.Mesh).isMesh) return;
-      const system = systemMap.get(child.uuid) ?? defaultSystem;
-      applyMeshState(child as THREE.Mesh, activeSystems.has(system), xrayMode);
+      const cls = meshClassMap.get(child.uuid) ?? 'skeletal';
+
+      if (cls === 'hide' || cls === 'skeletal') {
+        // Hide bones/cartilages/overlays — skeleton layer already shows them
+        child.visible = false;
+      } else {
+        // Soft tissue — controlled by system toggle
+        applyMeshState(child as THREE.Mesh, activeSystems.has(cls), xrayMode);
+      }
     });
-  }, [cloned, systemMap, activeSystems, xrayMode, defaultSystem]);
+  }, [cloned, meshClassMap, activeSystems, xrayMode]);
 
   return <primitive object={cloned} />;
 }
@@ -117,7 +168,7 @@ function ModelLoading() {
   );
 }
 
-/* ─── Error boundary — falls back to nothing (procedural geometry takes over) */
+/* ─── Error boundary — falls back to nothing (procedural takes over) ── */
 
 export class GLBErrorBoundary extends Component<
   { children: ReactNode; fallback?: ReactNode },
@@ -145,14 +196,15 @@ export default function AnatomyGLB() {
   const activeSystems = useGenesisStore((s) => s.activeSystems);
   const xrayMode = useGenesisStore((s) => s.xrayMode);
   const zoomLevel = useGenesisStore((s) => s.zoomLevel);
-  const selectedOrgan = useGenesisStore((s) => s.selectedOrgan);
   const groupRef = useRef<THREE.Group>(null);
   const [transform, setTransform] = useState<{
     scale: number;
     pos: [number, number, number];
   } | null>(null);
 
-  // Compute global transform from skeleton bounding box
+  // Compute global transform from skeleton bounding box.
+  // All AnatomyTOOL models share the same coordinate space, so one
+  // transform (derived from the skeleton) aligns everything.
   const handleSkeletonBounds = useMemo(
     () => (box: THREE.Box3) => {
       const size = box.getSize(new THREE.Vector3());
@@ -168,19 +220,16 @@ export default function AnatomyGLB() {
         pos: [-center.x * scale, midY - center.y * scale, -center.z * scale],
       });
 
-      console.log('[GENESIS] Model transform computed:', {
-        scale: scale.toFixed(6),
-        modelSize: `${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)}`,
-        modelCenter: `${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)}`,
+      console.log('[GENESIS] Model transform:', {
+        scale: scale.toFixed(4),
+        modelSize: `${size.x.toFixed(3)} × ${size.y.toFixed(3)} × ${size.z.toFixed(3)}`,
       });
     },
     [],
   );
 
-  // Detail models load on zoom
-  const showLimbs = zoomLevel !== 'body';
-  const showSkull = selectedOrgan === 'brain' || selectedOrgan === 'eyes';
-  const showHand = selectedOrgan === 'hand';
+  // Regional soft-tissue detail loads when zoomed past body level
+  const showRegionalDetail = zoomLevel !== 'body';
 
   return (
     <group
@@ -188,68 +237,50 @@ export default function AnatomyGLB() {
       scale={transform ? transform.scale : 1}
       position={transform ? transform.pos : [0, 0, 0]}
     >
-      {/* ── Base skeleton (always loaded) ── */}
+      {/* ── Base skeleton (always loaded, clean bone geometry) ── */}
       <Suspense fallback={<ModelLoading />}>
-        <ModelLayer
-          path="/models/anatomy/skeleton/overview-skeleton.glb"
-          defaultSystem="skeletal"
+        <SkeletonLayer
           activeSystems={activeSystems}
           xrayMode={xrayMode}
           onBounds={handleSkeletonBounds}
         />
       </Suspense>
 
-      {/* ── Limb detail (muscles / nerves / vessels) ── */}
-      {showLimbs && (
+      {/* ── Regional soft tissue (muscles, nerves, vessels) ──
+          Only loads when zoomed past body level.
+          Bone groups are hidden — the skeleton layer provides them.
+          System toggles control which tissue types are visible. */}
+      {showRegionalDetail && (
         <>
           <Suspense fallback={null}>
-            <ModelLayer
+            <RegionalLayer
               path="/models/anatomy/upper-limb/upper-limb.glb"
-              defaultSystem="muscular"
               activeSystems={activeSystems}
               xrayMode={xrayMode}
             />
           </Suspense>
           <Suspense fallback={null}>
-            <ModelLayer
+            <RegionalLayer
               path="/models/anatomy/lower-limb/lower-limb.glb"
-              defaultSystem="muscular"
+              activeSystems={activeSystems}
+              xrayMode={xrayMode}
+            />
+          </Suspense>
+          <Suspense fallback={null}>
+            <RegionalLayer
+              path="/models/anatomy/hand/hand.glb"
               activeSystems={activeSystems}
               xrayMode={xrayMode}
             />
           </Suspense>
         </>
       )}
-
-      {/* ── Skull detail ── */}
-      {showSkull && (
-        <Suspense fallback={null}>
-          <ModelLayer
-            path="/models/anatomy/skull/overview-colored-skull.glb"
-            defaultSystem="skeletal"
-            activeSystems={activeSystems}
-            xrayMode={xrayMode}
-          />
-        </Suspense>
-      )}
-
-      {/* ── Hand detail ── */}
-      {showHand && (
-        <Suspense fallback={null}>
-          <ModelLayer
-            path="/models/anatomy/hand/hand.glb"
-            defaultSystem="skeletal"
-            activeSystems={activeSystems}
-            xrayMode={xrayMode}
-          />
-        </Suspense>
-      )}
     </group>
   );
 }
 
-/* ── Preload critical models ── */
+/* ── Preload skeleton immediately, limbs in background ── */
 useGLTF.preload('/models/anatomy/skeleton/overview-skeleton.glb');
-// Background-preload limbs so they're ready when user zooms
 useGLTF.preload('/models/anatomy/upper-limb/upper-limb.glb');
 useGLTF.preload('/models/anatomy/lower-limb/lower-limb.glb');
+useGLTF.preload('/models/anatomy/hand/hand.glb');
