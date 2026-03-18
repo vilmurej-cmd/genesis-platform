@@ -1,6 +1,7 @@
 'use client';
 
 import { useGenesisStore } from '../store';
+import AnatomyGLB, { GLBErrorBoundary } from './AnatomyGLB';
 import Skeletal from './systems/Skeletal';
 import Muscular from './systems/Muscular';
 import Circulatory from './systems/Circulatory';
@@ -30,9 +31,18 @@ export default function HumanBody() {
 
   return (
     <group visible={showBody}>
-      {/* Body systems — order matters for transparency rendering */}
+      {/* ── Realistic 3D anatomy models (GLB) ──
+          Replaces the procedural Skeletal system with real bone geometry.
+          Falls back to procedural Skeletal if GLB fails to load. */}
+      <GLBErrorBoundary fallback={<Skeletal visible={activeSystems.has('skeletal')} />}>
+        <AnatomyGLB />
+      </GLBErrorBoundary>
+
+      {/* ── Procedural systems (overlay on top of GLB models) ──
+          These provide animated effects (blood flow, neural signals, breathing)
+          that complement the static GLB anatomy. */}
       <Integumentary visible={activeSystems.has('integumentary')} xrayMode={xrayMode} />
-      <Skeletal visible={activeSystems.has('skeletal')} />
+      {/* Skeletal removed — now provided by AnatomyGLB above */}
       <Muscular visible={activeSystems.has('muscular')} />
       <Circulatory visible={activeSystems.has('circulatory')} isPaused={isPaused} />
       <Nervous visible={activeSystems.has('nervous')} isPaused={isPaused} />

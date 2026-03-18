@@ -105,6 +105,22 @@ export default function ExplorePage() {
           <p className="text-[10px] text-white/30">X = X-Ray • Space = Pause</p>
         </div>
       </div>
+
+      {/* Attribution for 3D anatomy models (CC BY-SA 4.0) */}
+      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
+        <p className="text-[8px] text-white/15">
+          3D models:{' '}
+          <a
+            href="https://www.anatomytool.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white/30 transition-colors"
+          >
+            Open3DModel / AnatomyTOOL
+          </a>{' '}
+          (CC BY-SA 4.0)
+        </p>
+      </div>
     </div>
   );
 }
